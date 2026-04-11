@@ -1,0 +1,167 @@
+<form [formGroup]="configForm" (ngSubmit)="onSubmit()" class="config-form">
+  <!-- URL Input -->
+  <div class="form-group">
+    <label for="url" class="form-label">API Endpoint URL</label>
+    <input
+      id="url"
+      type="url"
+      formControlName="url"
+      class="form-input url-input"
+      placeholder="https://api.example.com/endpoint"
+      [class.error]="isFieldInvalid('url')"
+    />
+    <span class="error-message" *ngIf="isFieldInvalid('url')">
+      {{ getErrorMessage('url') }}
+    </span>
+  </div>
+
+  <!-- Method & Body Type Row -->
+  <div class="form-row">
+    <div class="form-group flex-1">
+      <label for="method" class="form-label">HTTP Method</label>
+      <select id="method" formControlName="method" class="form-select">
+        <option *ngFor="let method of httpMethods" [value]="method">
+          {{ method }}
+        </option>
+      </select>
+    </div>
+
+    <div class="form-group flex-1">
+      <label for="bodyType" class="form-label">Body Type</label>
+      <select id="bodyType" formControlName="bodyType" class="form-select">
+        <option *ngFor="let type of bodyTypes" [value]="type">
+          {{ formatBodyType(type) }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Config Grid: Request Count & Request Delay -->
+  <div class="form-row">
+    <div class="form-group flex-1">
+      <label for="requestCount" class="form-label">Request Count</label>
+      <input
+        id="requestCount"
+        type="number"
+        formControlName="requestCount"
+        class="form-input"
+        placeholder="10"
+        min="1"
+        max="10000"
+        [class.error]="isFieldInvalid('requestCount')"
+      />
+      <span class="error-message" *ngIf="isFieldInvalid('requestCount')">
+        {{ getErrorMessage('requestCount') }}
+      </span>
+    </div>
+
+    <div class="form-group flex-1">
+      <label for="requestDelay" class="form-label">Request Delay (ms)</label>
+      <input
+        id="requestDelay"
+        type="number"
+        formControlName="requestDelay"
+        class="form-input"
+        placeholder="0"
+        min="0"
+        max="10000"
+      />
+      <span class="help-text">Delay between consecutive requests (0 for no delay)</span>
+    </div>
+  </div>
+
+  <!-- Headers JSON Editor -->
+  <div class="form-group">
+    <label for="headers" class="form-label">Request Headers (JSON)</label>
+    <textarea
+      id="headers"
+      formControlName="headers"
+      class="form-textarea code-editor"
+      placeholder='{ "Content-Type": "application/json", "Authorization": "Bearer token" }'
+      rows="4"
+    ></textarea>
+    <span class="help-text">Optional custom headers in JSON format</span>
+  </div>
+
+  <!-- Sample Body JSON Editor -->
+  <div class="form-group">
+    <label for="sampleBody" class="form-label">Sample Request Body (JSON)</label>
+    <textarea
+      id="sampleBody"
+      formControlName="sampleBody"
+      class="form-textarea code-editor"
+      placeholder='{ "username": "user@example.com", "password": "pass123" }'
+      rows="6"
+    ></textarea>
+    <span class="help-text"
+      >JSON template for generating fake data. Fields matching common names will be
+      auto-populated.</span
+    >
+  </div>
+
+  <!-- Additional Config Row -->
+  <div class="form-row">
+    <div class="form-group flex-1">
+      <label for="timeout" class="form-label">Timeout (ms)</label>
+      <input
+        id="timeout"
+        type="number"
+        formControlName="timeout"
+        class="form-input"
+        placeholder="30000"
+        min="1000"
+        max="120000"
+      />
+    </div>
+
+    <div class="form-group flex-1">
+      <label for="testDuration" class="form-label">Test Duration (sec)</label>
+      <input
+        id="testDuration"
+        type="number"
+        formControlName="testDuration"
+        class="form-input"
+        placeholder="0 (unlimited)"
+        min="0"
+        max="3600"
+      />
+    </div>
+  </div>
+  <div class="form-group checkbox-wrapper">
+      <label class="custom-checkbox">
+        <input type="checkbox" formControlName="useFaker" />
+        <span class="checkmark"></span>
+        <span class="label-text">Enable Intelligent Data Faking</span>
+      </label>
+      <span class="help-text"
+        >Uncheck this if you want to send the EXACT Sample Body (useful for Login).</span
+      >
+    </div>
+  <div class="auth-faker-settings">
+    <div class="form-group">
+      <label for="manualToken" class="form-label">Manual Bearer Token (Optional)</label>
+      <input
+        id="manualToken"
+        type="text"
+        formControlName="manualToken"
+        class="form-input"
+        placeholder="eyJhbGciOiJIUzI1NiIsInR..."
+      />
+      <span class="help-text">Directly injects a token into the system before testing.</span>
+    </div>
+
+  </div>
+
+  <!-- Start Test Button -->
+  <div class="form-actions">
+    <button
+      type="submit"
+      class="btn btn-primary btn-lg"
+      [disabled]="!configForm.valid || isTesting"
+    >
+      <span class="btn-icon" *ngIf="!isTesting">▶</span>
+      <span class="btn-icon spinner" *ngIf="isTesting"></span>
+      {{ isTesting ? 'Testing...' : 'Start Stress Test' }}
+    </button>
+  </div>
+</form>

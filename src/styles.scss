@@ -1,1 +1,320 @@
+
+// Include theming for Angular Material with `mat.theme()`.
+// This Sass mixin will define CSS variables that are used for styling Angular Material
+// components according to the Material 3 design spec.
+// Learn more about theming and how to use it for your application's
+// custom components at https://material.angular.dev/guide/theming
+@use '@angular/material' as mat;
+// Import variables and mixins first
+@use './app/styles/variables' as *;
+@use './app/styles/mixins' as *;
+
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$azure-palette,
+      tertiary: mat.$blue-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+body {
+  // Default the application to a light color theme. This can be changed to
+  // `dark` to enable the dark color theme, or to `light dark` to defer to the
+  // user's system settings.
+  color-scheme: light;
+
+  // Set a default background, font and text colors for the application using
+  // Angular Material's system-level CSS variables. Learn more about these
+  // variables at https://material.angular.dev/guide/system-variables
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+
+  // Reset the user agent margin.
+  margin: 0;
+}
 /* You can add global styles to this file, and also import other style files */
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+// Reset and base styles
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+// Global font and background
+body {
+  background-color: $bg-dark;
+  color: $text-main;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Scrollbar customization
+html {
+  @include custom-scrollbar(8px, $bg-dark, $surface-light, $text-muted);
+}
+
+// Typography
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: $spacing-md;
+  color: $text-main;
+}
+
+h1 {
+  font-size: 28px;
+}
+
+h2 {
+  font-size: 24px;
+}
+
+h3 {
+  font-size: 20px;
+}
+
+h4 {
+  font-size: 18px;
+}
+
+h5 {
+  font-size: 16px;
+}
+
+h6 {
+  font-size: 14px;
+}
+
+p {
+  margin-bottom: $spacing-md;
+  color: $text-main;
+}
+
+// Links
+a {
+  color: $primary-blue;
+  text-decoration: none;
+  @include transition(color);
+
+  &:hover {
+    color: $accent-cyan;
+  }
+
+  &:focus {
+    @include focus-ring();
+  }
+}
+
+// Buttons base
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  @include transition(all);
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Input fields
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: 14px;
+  color: $text-main;
+  background-color: $surface-dark;
+  border: 1px solid $surface-light;
+  border-radius: $radius-md;
+  padding: $spacing-sm $spacing-md;
+  @include transition(border-color, background-color);
+
+  &:focus {
+    outline: none;
+    border-color: $primary-blue;
+    background-color: rgba(59, 130, 246, 0.05);
+  }
+
+  &:disabled {
+    background-color: $bg-dark;
+    color: $text-muted;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+textarea {
+  resize: vertical;
+  min-height: 100px;
+  @include custom-scrollbar(6px, $surface-dark, $surface-light, $text-muted);
+}
+
+// Code blocks
+code,
+pre {
+  font-family: 'Monaco', 'Courier New', monospace;
+  background-color: $bg-darker;
+  border-radius: $radius-md;
+  color: $accent-cyan;
+}
+
+code {
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+pre {
+  padding: $spacing-md;
+  overflow-x: auto;
+  @include custom-scrollbar(6px, $bg-darker, $surface-light, $text-muted);
+
+  code {
+    background: none;
+    padding: 0;
+  }
+}
+
+// Lists
+ul,
+ol {
+  margin-left: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+li {
+  margin-bottom: $spacing-sm;
+}
+
+// Tables
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: $spacing-lg;
+}
+
+th,
+td {
+  padding: $spacing-md;
+  text-align: left;
+  border-bottom: 1px solid $surface-light;
+}
+
+th {
+  background-color: $surface-dark;
+  font-weight: 600;
+  color: $text-main;
+}
+
+tr:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+// Utility classes
+.sr-only {
+  @include sr-only;
+}
+
+.container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 $spacing-lg;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-muted {
+  color: $text-muted;
+}
+
+.text-error {
+  color: $error-red;
+}
+
+.text-success {
+  color: $success-green;
+}
+
+.text-warning {
+  color: $warning-orange;
+}
+
+.text-info {
+  color: $info-purple;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

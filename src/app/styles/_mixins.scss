@@ -1,0 +1,101 @@
+// Flexbox - Center content both horizontally and vertically
+@use './variables' as *;
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Flexbox - Row layout with center vertical alignment
+@mixin flex-row {
+  display: flex;
+  align-items: center;
+}
+
+// Flexbox - Column layout with center horizontal alignment
+@mixin flex-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+// Custom scrollbar styling - thin and dark theme
+@mixin custom-scrollbar($width: 8px, $track-color: $surface-dark, $thumb-color: $surface-light, $thumb-hover: $text-muted) {
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  &::-webkit-scrollbar {
+    width: $width;
+    height: $width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $track-color;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $thumb-color;
+    border-radius: $radius-md;
+    border: 2px solid $track-color;
+
+    &:hover {
+      background: $thumb-hover;
+    }
+  }
+
+  /* Firefox */
+  scrollbar-color: $thumb-color $track-color;
+  scrollbar-width: thin;
+}
+
+// Text truncation - single line ellipsis
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Text truncation - multiline ellipsis
+@mixin text-truncate-lines($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// Visually hidden but accessible to screen readers
+@mixin sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+// Smooth transition utility
+@mixin transition($properties: all, $duration: $transition-base, $timing: ease-in-out) {
+  transition: $properties $duration $timing;
+}
+
+// Focus ring for accessibility
+@mixin focus-ring($color: $primary-blue, $width: 2px, $offset: 2px) {
+  outline: $width solid $color;
+  outline-offset: $offset;
+}
+
+// Absolute centering
+@mixin absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+// Responsive grid
+@mixin responsive-grid($min-column-width: 250px, $gap: $spacing-lg) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax($min-column-width, 1fr));
+  gap: $gap;
+}

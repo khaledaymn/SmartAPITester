@@ -1,0 +1,48 @@
+<div class="monitor-container" [class.hidden]="!shouldDisplay()">
+  <!-- Header Section -->
+  <div class="monitor-header" *ngIf="minimal">
+    <div class="header-title">
+      <div class="status-indicator" [class.active]="apiRunner.isTesting()"></div>
+      <span>Test Progress</span>
+    </div>
+    <div class="test-state">
+      {{ apiRunner.isTesting() ? 'Running...' : 'Completed' }}
+    </div>
+  </div>
+
+  <!-- Progress Bar Section -->
+  <div class="progress-section" *ngIf="minimal">
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" [style.width.%]="apiRunner.progress()"></div>
+    </div>
+    <div class="progress-text">{{ apiRunner.progress() }}%</div>
+  </div>
+
+  <!-- Quick Stats Row -->
+  <div class="stats-grid" *ngIf="!minimal">
+    <div class="stat-item">
+      <div class="stat-label">Total</div>
+      <div class="stat-value">{{ apiRunner.testSummary().totalRequests }}</div>
+    </div>
+
+    <div class="stat-item">
+      <div class="stat-label">Success</div>
+      <div class="stat-value success">{{ apiRunner.testSummary().successCount }}</div>
+    </div>
+
+    <div class="stat-item">
+      <div class="stat-label">Failed</div>
+      <div class="stat-value error">{{ apiRunner.testSummary().errorCount }}</div>
+    </div>
+
+    <div class="stat-item">
+      <div class="stat-label">Avg Time</div>
+      <div class="stat-value">{{ apiRunner.testSummary().avgTime }}ms</div>
+    </div>
+
+    <div class="stat-item">
+      <div class="stat-label">Success Rate</div>
+      <div class="stat-value">{{ apiRunner.testSummary().successRate }}%</div>
+    </div>
+  </div>
+</div>

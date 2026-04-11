@@ -1,0 +1,100 @@
+<div class="viewer-container">
+      <!-- Header -->
+      <div class="viewer-header">
+        <h2 class="viewer-title">Response Inspector</h2>
+        <button
+          class="clear-btn"
+          (click)="onClearResults()"
+          [disabled]="apiRunner.results().length === 0"
+          title="Clear all test results"
+        >
+          <span class="icon">🗑</span>
+          Clear Results
+        </button>
+      </div>
+
+      <!-- Main Grid: List + Detail -->
+      <div class="viewer-grid">
+        <!-- Master List Side -->
+        <div class="results-list-container">
+          <!-- Search Filter -->
+          <div class="search-container">
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Search by status code..."
+              [(ngModel)]="searchQuery"
+              (ngModelChange)="onSearchChange()"
+            />
+            <span class="search-count">{{ filteredResults().length }}</span>
+          </div>
+
+          <!-- Results List -->
+          <div class="results-list">
+            <div *ngIf="filteredResults().length === 0" class="empty-state">
+              <p>No results yet. Run a test to see responses here.</p>
+            </div>
+
+            <div
+              *ngFor="let result of filteredResults()"
+              class="result-row"
+              [class.selected]="selectedResult() === result"
+              (click)="selectResult(result)"
+              [title]="result.statusText"
+            >
+              <!-- Method Badge -->
+              <div class="result-method">
+                GET
+              </div>
+
+              <!-- Status Code with Color -->
+              <div
+                class="result-status"
+                [class.success]="!result.isError"
+                [class.error]="result.isError"
+              >
+                {{ result.statusCode }}
+              </div>
+
+              <!-- Time -->
+              <div class="result-time">
+                {{ result.timeMs }}ms
+              </div>
+
+              <!-- Timestamp -->
+              <div class="result-timestamp">
+                {{ result.timestamp | date: 'HH:mm:ss' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail View Side -->
+        <div class="response-detail-container">
+          <div *ngIf="!selectedResult()" class="detail-placeholder">
+            <p>Select a result to view response</p>
+          </div>
+
+          <div *ngIf="selectedResult()" class="detail-content">
+            <!-- Detail Header -->
+            <div class="detail-header">
+              <div class="detail-title">
+                <span class="status-badge"
+                  [class.success]="!selectedResult()!.isError"
+                  [class.error]="selectedResult()!.isError"
+                >
+                  {{ selectedResult()!.statusCode }}
+                </span>
+                <span class="status-text">{{ selectedResult()!.statusText }}</span>
+              </div>
+              <div class="detail-time">{{ selectedResult()!.timeMs }}ms</div>
+            </div>
+
+            <!-- Response Body Viewer -->
+            <div class="response-body">
+              <pre><code>{{ selectedResult()!.responseBody }}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

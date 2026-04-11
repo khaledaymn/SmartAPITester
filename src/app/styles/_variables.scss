@@ -1,0 +1,50 @@
+// Color Palette - Modern Dark Theme
+$bg-dark: #0f172a;
+$surface-dark: #1e293b;
+$primary-blue: #3b82f6;
+$accent-cyan: #06b6d4;
+$error-red: #ef4444;
+$success-green: #10b981;
+$text-main: #f8fafc;
+$text-muted: #94a3b8;
+
+// Additional semantic colors
+$bg-darker: #020617;
+$surface-light: #334155;
+$warning-orange: #f97316;
+$info-purple: #a855f7;
+
+// Spacing scale
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 16px;
+$spacing-xl: 24px;
+$spacing-2xl: 32px;
+
+// Border radius
+$radius-sm: 4px;
+$radius-md: 6px;
+$radius-lg: 8px;
+$radius-xl: 12px;
+
+// Transitions
+$transition-fast: 150ms ease-in-out;
+$transition-base: 250ms ease-in-out;
+$transition-slow: 350ms ease-in-out;
+
+// Shadows
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+
+// Z-index scale
+$z-base: 1;
+$z-dropdown: 100;
+$z-sticky: 200;
+$z-fixed: 300;
+$z-modal-backdrop: 400;
+$z-modal: 500;
+$z-popover: 600;
+$z-tooltip: 700;

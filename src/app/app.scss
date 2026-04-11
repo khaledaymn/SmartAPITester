@@ -1,0 +1,306 @@
+@use '../app/styles/variables' as *;
+@use '../app/styles/mixins' as *;
+
+.dashboard-container {
+  min-height: 100vh;
+  width: 100%;
+  background: $bg-dark;
+  color: $text-main;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-header {
+  background: linear-gradient(135deg, rgba($primary-blue, 0.1) 0%, transparent 100%);
+  border-bottom: 1px solid rgba($accent-cyan, 0.1);
+  padding: $spacing-xl $spacing-2xl;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+  .header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: $spacing-xl;
+  }
+
+  .header-title-section {
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, $accent-cyan 0%, $primary-blue 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -1px;
+    }
+    .subtitle {
+      color: $text-muted;
+      font-size: 13px;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+  }
+}
+
+.tab-nav {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 5px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 5px;
+
+  button {
+    background: transparent;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    color: $text-muted;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &.active {
+      background: $primary-blue;
+      color: white;
+      box-shadow: 0 4px 12px rgba($primary-blue, 0.3);
+    }
+  }
+}
+
+.dashboard-main {
+  flex: 1;
+  max-width: 1100px;
+  width: 100%;
+  margin: $spacing-xl auto;
+  padding: 0 $spacing-xl;
+}
+
+// ==========================================
+// COMPACT MODAL DESIGN
+// ==========================================
+
+.execution-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.9); // خلفية أغمق للتركيز
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compact-modal {
+  background: #0f172a; // نفس لون الثيم
+  width: 80vw; // عرض متوسط ومريح
+  height: 85vh; // ارتفاع لا يغطي الشاشة بالكامل
+  border-radius: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 1rem 1.5rem;
+  background: rgba(30, 41, 59, 0.5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+  .brand-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .title-meta {
+      h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: white;
+      }
+      .status-label {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        &.running {
+          color: #22d3ee;
+        }
+      }
+    }
+  }
+}
+
+.close-circle-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #ef4444;
+    color: white;
+    transform: rotate(90deg);
+  }
+}
+
+.modal-content-grid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  // gap: 0.5rem;
+  overflow: hidden;
+
+  .stats-preview {
+    flex-shrink: 0;
+    padding-bottom: 0.2rem;
+  }
+
+  .results-detailed-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    height: 5rem;
+    app-response-viewer {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+}
+
+.monitor-wrapper {
+  flex-shrink: 0;
+}
+.viewer-wrapper {
+  min-height: 350px;
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.05);
+  letter-spacing: 1px;
+
+  &.running {
+    color: $accent-cyan;
+  }
+}
+
+.pulse-icon {
+  width: 10px;
+  height: 10px;
+  background: #475569;
+  border-radius: 50%;
+  &.running {
+    background: $success-green;
+    box-shadow: 0 0 8px $success-green;
+    animation: pulse 1.5s infinite;
+  }
+}
+
+.pulse-indicator {
+  width: 10px;
+  height: 10px;
+  background: #475569;
+  border-radius: 50%;
+  &.running {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: pulse 2s infinite;
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// وضع التبويب (History)
+.history-full-view {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  height: calc(100vh - 200px); // طول مناسب للتبويب
+
+  .stats-dashboard {
+     flex-shrink: 0; // الكروت تاخد مساحتها الطبيعية
+  }
+  .history-inspector {
+     flex: 1; // الريسبونس يفرش تحتها
+  }
+}
+
+// وضع الموديل (Live)
+.compact-modal {
+  width: 85vw;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+
+  .modal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    gap: 1rem;
+    overflow: hidden;
+
+    .live-progress-only {
+      flex-shrink: 0;
+      // هنا الـ Progress هيكون فوق وصغير جداً
+    }
+
+    .live-inspector {
+      flex: 1; // الريسبونس ياخد كل المساحة المتبقية (هيكون عملاق)
+      min-height: 0;
+    }
+  }
+}
