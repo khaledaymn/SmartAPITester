@@ -154,8 +154,28 @@ export class ApiRunnerService {
     body: any,
     headers: any,
   ): Observable<any> {
-    const url = config.url;
+    let url = config.url;
     const method = config.method.toUpperCase();
+
+    if (method === 'GET' && body && typeof body === 'object') {
+    const params = new URLSearchParams();
+
+    Object.keys(body).forEach(key => {
+      const value = body[key];
+      if (value !== null && value !== undefined) {
+        if (Array.isArray(value)) {
+          value.forEach(item => params.append(key, item));
+        } else {
+          params.append(key, value);
+        }
+      }
+    });
+
+    const queryString = params.toString();
+    if (queryString) {
+      url += url.includes('?') ? `&${queryString}` : `?${queryString}`;
+    }
+  }
 
     let finalBody = body;
     if (config.bodyType === 'form-data' && typeof body === 'object') {
