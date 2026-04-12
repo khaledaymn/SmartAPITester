@@ -20,12 +20,20 @@ export class ApiRunnerService {
   isTesting = signal<boolean>(false);
   progress = signal<number>(0);
   lastConfig = signal<ApiRequestConfig | null>(null);
-  
+
   // Computed signal for test summary (Statistical Analysis)
   readonly testSummary = computed(() => {
     const testResults = this.results();
     if (testResults.length === 0) {
-      return { totalRequests: 0, successCount: 0, errorCount: 0, avgTime: 0, minTime: 0, maxTime: 0, successRate: 0 };
+      return {
+        totalRequests: 0,
+        successCount: 0,
+        errorCount: 0,
+        avgTime: 0,
+        minTime: 0,
+        maxTime: 0,
+        successRate: 0,
+      };
     }
 
     const errors = testResults.filter((r) => r.isError);
@@ -57,14 +65,12 @@ export class ApiRunnerService {
       .pipe(
         concatMap((index) => {
           // تنفيذ الطلب ثم انتظار الـ Delay المحدد
-          return this.runSingleRequest(config, index).pipe(
-            delay(config.requestDelay || 0)
-          );
+          return this.runSingleRequest(config, index).pipe(delay(config.requestDelay || 0));
         }),
         finalize(() => {
           this.isTesting.set(false);
           this.progress.set(100);
-        })
+        }),
       )
       .subscribe({
         error: (err) => {
@@ -78,17 +84,17 @@ export class ApiRunnerService {
    * Executes a single request and returns an Observable of the result
    */
   private runSingleRequest(config: ApiRequestConfig, index: number): Observable<any> {
-
-    const generatedData = !config.useFaker ?
-                config.sampleBody : this.dataFaker.generateData(config.sampleBody);
+    const generatedData = !config.useFaker
+      ? config.sampleBody
+      : this.dataFaker.generateData(config.sampleBody);
 
     const headers = { ...(config.headers || {}) };
     if (config.bodyType && config.bodyType !== 'plain-text') {
       const contentTypeMap: Record<string, string> = {
-        'json': 'application/json',
+        json: 'application/json',
         'form-data': 'multipart/form-data',
         'x-www-form-urlencoded': 'application/x-www-form-urlencoded',
-        'xml': 'application/xml',
+        xml: 'application/xml',
       };
       if (contentTypeMap[config.bodyType]) {
         headers['Content-Type'] = contentTypeMap[config.bodyType];
@@ -136,33 +142,55 @@ export class ApiRunnerService {
         };
         this.addResult(result, index, config.requestCount);
         return of(result); // نستخدم of لضمان استمرار الـ Stream في حالة الخطأ
-      })
+      }),
     );
   }
 
   /**
    * Helper to create the correct HttpClient Observable
    */
-  private prepareHttpObservable(config: ApiRequestConfig, body: any, headers: any): Observable<any> {
-  const url = config.url;
-  const method = config.method.toUpperCase();
+  private prepareHttpObservable(
+    config: ApiRequestConfig,
+    body: any,
+    headers: any,
+  ): Observable<any> {
+    const url = config.url;
+    const method = config.method.toUpperCase();
 
-  let finalBody = body;
-  if (config.bodyType === 'form-data' && typeof body === 'object') {
-    const formData = new FormData();
-    Object.keys(body).forEach(key => formData.append(key, body[key]));
-    finalBody = formData;
+    let finalBody = body;
+    if (config.bodyType === 'form-data' && typeof body === 'object') {
+      const formData = new FormData();
 
-    delete headers['Content-Type'];
+      Object.keys(body).forEach((key) => {
+        const value = body[key];
+
+        if (value === '[FILE_UPLOAD]') {
+          const mockFile = new Blob([''], { type: 'image/png' });
+          formData.append(key, mockFile, 'test-image.png');
+        } else {
+          formData.append(key, value);
+        }
+      });
+
+      finalBody = formData;
+
+      if (headers['Content-Type']) {
+        delete headers['Content-Type'];
+      }
+    }
+    switch (method) {
+      case 'POST':
+        return this.httpClient.post(url, finalBody, { headers });
+      case 'PUT':
+        return this.httpClient.put(url, finalBody, { headers });
+      case 'PATCH':
+        return this.httpClient.patch(url, finalBody, { headers });
+      case 'DELETE':
+        return this.httpClient.delete(url, { headers });
+      default:
+        return this.httpClient.get(url, { headers });
+    }
   }
-
-  switch (method) {
-    case 'POST': return this.httpClient.post(url, finalBody, { headers });
-    case 'PUT': return this.httpClient.put(url, finalBody, { headers });
-    case 'PATCH': return this.httpClient.patch(url, finalBody, { headers });
-    default: return this.httpClient.get(url, { headers });
-  }
-}
 
   private addResult(result: TestResult, index: number, totalRequests: number): void {
     this.results.update((current) => [...current, result]);
