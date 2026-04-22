@@ -117,6 +117,13 @@ export class DataFakerService {
       return faker.person.fullName();
     }
 
+    if (this.matchesPattern(keyLower, ['phone', 'phonenumber', 'telephone', 'mobile'])) {
+      const prefixes = ['010', '011', '012', '015'];
+      const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+
+      return randomPrefix + faker.string.numeric(8);
+    }
+
     if (this.matchesPattern(keyLower, ['firstname', 'first_name'])) {
       return faker.person.firstName();
     }
@@ -125,9 +132,9 @@ export class DataFakerService {
       return faker.person.lastName();
     }
 
-    if (this.matchesPattern(keyLower, ['phone', 'phonenumber', 'telephone', 'mobile'])) {
-      return faker.phone.number();
-    }
+    // if (this.matchesPattern(keyLower, ['phone', 'phonenumber', 'telephone', 'mobile'])) {
+    //   return faker.phone.number();
+    // }
 
     if (this.matchesPattern(keyLower, ['id', 'uuid', 'uniqueid', 'identifier'])) {
       return faker.string.uuid();
@@ -135,6 +142,10 @@ export class DataFakerService {
 
     if (this.matchesPattern(keyLower, ['address', 'streetaddress', 'street'])) {
       return faker.location.streetAddress();
+    }
+
+    if (this.matchesPattern(keyLower, ['price', 'amount', 'balance', 'cost', 'salary', 'wage'])) {
+      return faker.number.int({ min: 4000, max: 15000 });
     }
 
     if (this.matchesPattern(keyLower, ['city', 'municipality'])) {
@@ -192,13 +203,6 @@ export class DataFakerService {
       return faker.color.rgb();
     }
 
-    if (this.matchesPattern(keyLower, ['phone', 'phonenumber', 'telephone', 'mobile'])) {
-      const prefixes = ['010', '011', '012', '015'];
-      const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-
-      return randomPrefix + faker.string.numeric(8);
-    }
-    
     // Type-Based Fallback Detection
     const valueType = typeof value;
 
