@@ -24,7 +24,7 @@ import { faker } from '@faker-js/faker';
  * // Returns an object with same structure but all values randomized
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class DataFakerService {
   /**
@@ -61,11 +61,7 @@ export class DataFakerService {
           const value = sampleData[key];
 
           // Recursively process nested objects and arrays
-          if (
-            typeof value === 'object' &&
-            value !== null &&
-            !(value instanceof Date)
-          ) {
+          if (typeof value === 'object' && value !== null && !(value instanceof Date)) {
             result[key] = this.generateData(value);
           } else if (value instanceof Date) {
             // Preserve Date objects
@@ -101,6 +97,18 @@ export class DataFakerService {
     const keyLower = key.toLowerCase();
 
     // Smart Key-Based Detection
+
+    if (value === '[FILE_UPLOAD]') {
+      return value;
+    }
+
+    if (
+      keyLower.includes('time') ||
+      (typeof value === 'string' && /^\d{2}:\d{2}:\d{2}$/.test(value))
+    ) {
+      return value;
+    }
+
     if (this.matchesPattern(keyLower, ['email', 'mail', 'emailaddress'])) {
       return faker.internet.email();
     }
@@ -141,7 +149,9 @@ export class DataFakerService {
       return faker.location.zipCode();
     }
 
-    if (this.matchesPattern(keyLower, ['description', 'bio', 'text', 'content', 'comment', 'message'])) {
+    if (
+      this.matchesPattern(keyLower, ['description', 'bio', 'text', 'content', 'comment', 'message'])
+    ) {
       return faker.lorem.sentence();
     }
 
@@ -157,7 +167,16 @@ export class DataFakerService {
       return faker.internet.url();
     }
 
-    if (this.matchesPattern(keyLower, ['date', 'timestamp', 'createdat', 'updatedat', 'createdon', 'updatedon'])) {
+    if (
+      this.matchesPattern(keyLower, [
+        'date',
+        'timestamp',
+        'createdat',
+        'updatedat',
+        'createdon',
+        'updatedon',
+      ])
+    ) {
       return faker.date.recent().toISOString();
     }
 
@@ -173,6 +192,13 @@ export class DataFakerService {
       return faker.color.rgb();
     }
 
+    if (this.matchesPattern(keyLower, ['phone', 'phonenumber', 'telephone', 'mobile'])) {
+      const prefixes = ['010', '011', '012', '015'];
+      const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+
+      return randomPrefix + faker.string.numeric(8);
+    }
+    
     // Type-Based Fallback Detection
     const valueType = typeof value;
 
