@@ -178,8 +178,11 @@ export class ApiRunnerService {
   }
 
     let finalBody = body;
-    if (config.bodyType === 'form-data' && typeof body === 'object') {
-      const formData = new FormData();
+    const hasFileUpload = body && typeof body === 'object' &&
+                      Object.values(body).some(val => val === '[FILE_UPLOAD]');
+
+  if ((config.bodyType === 'form-data' || hasFileUpload) && typeof body === 'object' && method !== 'GET') {
+    const formData = new FormData();
 
       Object.keys(body).forEach((key) => {
         const value = body[key];
@@ -188,7 +191,7 @@ export class ApiRunnerService {
           const mockFile = new Blob([''], { type: 'image/png' });
           formData.append(key, mockFile, 'test-image.png');
         } else {
-          formData.append(key, value);
+          formData.append(key, value !== null && value !== undefined ? value.toString() : '');
         }
       });
 
@@ -206,7 +209,7 @@ export class ApiRunnerService {
       case 'PATCH':
         return this.httpClient.patch(url, finalBody, { headers });
       case 'DELETE':
-        return this.httpClient.delete(url, { headers });
+        return this.httpClient.delete(url, { headers, body: finalBody });
       default:
         return this.httpClient.get(url, { headers });
     }
