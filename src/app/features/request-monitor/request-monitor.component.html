@@ -11,11 +11,11 @@
   </div>
 
   <!-- Progress Bar Section -->
-  <div class="progress-section" *ngIf="minimal">
-    <div class="progress-bar-container">
-      <div class="progress-bar-fill" [style.width.%]="apiRunner.progress()"></div>
+  <div class="progress-section" *ngIf="minimal" [class.completed]="apiRunner.progress() === 100">
+    <div class="progress-bar-container" [class.completed]="apiRunner.progress() === 100">
+      <div class="progress-bar-fill" [class.completed]="apiRunner.progress() === 100" [style.width.%]="apiRunner.progress()"></div>
     </div>
-    <div class="progress-text">{{ apiRunner.progress() }}%</div>
+    <div class="progress-text" [class.completed]="apiRunner.progress() === 100">{{ apiRunner.progress() }}%</div>
   </div>
 
   <!-- Main Stats (Primary Area) -->

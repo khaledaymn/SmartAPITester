@@ -44,8 +44,9 @@ export class ResponseViewerComponent {
 
   /**
    * Computed signal for filtered results
-   * Efficiently filters across multiple fields: status code, status text, and response body
-   * Returns full results if search term is empty
+   * Efficiently filters across multiple fields: URL, status code, status text, and response body
+   * Uses case-insensitive matching for all fields
+   * Returns full results if search term is empty for optimal performance
    * Recalculates only when dependencies (results or searchTerm) change
    */
   filteredResults = computed(() => {
@@ -59,12 +60,13 @@ export class ResponseViewerComponent {
 
     const lowerQuery = query.toLowerCase();
 
-    // Single-pass filter across multiple fields
+    // Single-pass filter across multiple fields with case-insensitive matching
     return results.filter((result) => {
+      const urlMatch = result.url?.toLowerCase().includes(lowerQuery) ?? false;
       const codeMatch = result.statusCode?.toString().includes(lowerQuery) ?? false;
       const textMatch = result.statusText?.toLowerCase().includes(lowerQuery) ?? false;
       const bodyMatch = result.responseBody?.toLowerCase().includes(lowerQuery) ?? false;
-      return codeMatch || textMatch || bodyMatch;
+      return urlMatch || codeMatch || textMatch || bodyMatch;
     });
   });
 
