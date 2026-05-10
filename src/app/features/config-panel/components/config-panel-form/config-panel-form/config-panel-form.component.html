@@ -114,6 +114,97 @@
     >
   </div>
 
+  <!-- Authentication Section -->
+  <div class="auth-section">
+    <h3 class="auth-section-title">Authentication</h3>
+    <div class="form-group">
+      <label for="authType" class="form-label">Authentication Type</label>
+      <select id="authType" formControlName="authType" class="form-select">
+        <option *ngFor="let type of authTypes" [value]="type">
+          {{ formatAuthType(type) }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Bearer Token Auth -->
+    <div class="auth-config" *ngIf="configForm.get('authType')?.value === 'bearer'">
+      <div class="form-group">
+        <label for="authToken" class="form-label">Bearer Token</label>
+        <input
+          id="authToken"
+          type="password"
+          formControlName="authToken"
+          class="form-input"
+          placeholder="eyJhbGciOiJIUzI1NiIsInR..."
+        />
+        <span class="help-text">Your Bearer token for authentication</span>
+      </div>
+    </div>
+
+    <!-- Basic Auth -->
+    <div class="auth-config" *ngIf="configForm.get('authType')?.value === 'basic'">
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label for="basicUsername" class="form-label">Username</label>
+          <input
+            id="basicUsername"
+            type="text"
+            formControlName="basicUsername"
+            class="form-input"
+            placeholder="username"
+          />
+        </div>
+        <div class="form-group flex-1">
+          <label for="basicPassword" class="form-label">Password</label>
+          <input
+            id="basicPassword"
+            type="password"
+            formControlName="basicPassword"
+            class="form-input"
+            placeholder="password"
+          />
+        </div>
+      </div>
+      <span class="help-text">Credentials will be Base64 encoded as Authorization: Basic header</span>
+    </div>
+
+    <!-- API Key Auth -->
+    <div class="auth-config" *ngIf="configForm.get('authType')?.value === 'apikey'">
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label for="apiKeyName" class="form-label">Key Name</label>
+          <input
+            id="apiKeyName"
+            type="text"
+            formControlName="apiKeyName"
+            class="form-input"
+            placeholder="X-API-Key"
+          />
+          <span class="help-text">Header name or query parameter name</span>
+        </div>
+        <div class="form-group flex-1">
+          <label for="apiKeyValue" class="form-label">Key Value</label>
+          <input
+            id="apiKeyValue"
+            type="password"
+            formControlName="apiKeyValue"
+            class="form-input"
+            placeholder="your-api-key-value"
+          />
+          <span class="help-text">Your API key value</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="apiKeyAddTo" class="form-label">Add To</label>
+        <select id="apiKeyAddTo" formControlName="apiKeyAddTo" class="form-select">
+          <option value="header">Request Header</option>
+          <option value="query">Query Parameter</option>
+        </select>
+        <span class="help-text">Choose whether to add the API key as a header or query parameter</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Additional Config Row -->
   <div class="form-row">
     <div class="form-group flex-1">
@@ -153,18 +244,6 @@
       >
     </div>
   <div class="auth-faker-settings">
-    <div class="form-group">
-      <label for="manualToken" class="form-label">Manual Bearer Token (Optional)</label>
-      <input
-        id="manualToken"
-        type="text"
-        formControlName="manualToken"
-        class="form-input"
-        placeholder="eyJhbGciOiJIUzI1NiIsInR..."
-      />
-      <span class="help-text">Directly injects a token into the system before testing.</span>
-    </div>
-
   </div>
 
   <!-- Start/Stop Test Buttons with Status -->

@@ -1,7 +1,7 @@
 import { Component, OnInit, Output, EventEmitter, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { ApiRequestConfig, BodyType, HttpMethod } from '../../../../../core/models/request-config.model';
+import { ApiRequestConfig, BodyType, HttpMethod, AuthType } from '../../../../../core/models/request-config.model';
 import { ApiRunnerService } from '../../../../../core/services/api-runner.service';
 import { TokenManagerService } from '../../../../../core/services/token-manager.service';
 
@@ -33,6 +33,7 @@ export class ConfigPanelFormComponent implements OnInit {
 
   httpMethods: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
   bodyTypes: BodyType[] = ['json', 'form-data', 'x-www-form-urlencoded', 'xml', 'plain-text'];
+  authTypes: AuthType[] = ['none', 'bearer', 'basic', 'apikey'];
 
   ngOnInit(): void {
     this.initializeForm();
@@ -75,8 +76,13 @@ export class ConfigPanelFormComponent implements OnInit {
       timeout: [30000, [Validators.min(1000), Validators.max(120000)]],
       testDuration: [0, [Validators.min(0), Validators.max(3600)]],
       useFaker: [true],
-      manualToken: [''],
-
+      authType: ['none'],
+      authToken: [''],
+      basicUsername: [''],
+      basicPassword: [''],
+      apiKeyName: [''],
+      apiKeyValue: [''],
+      apiKeyAddTo: ['header'],
     });
     this.configForm.valueChanges.subscribe(val => {
       this.apiRunner.lastConfig.set(val);
@@ -113,8 +119,11 @@ export class ConfigPanelFormComponent implements OnInit {
       }
     }
 
-    if (formValue.manualToken) {
-      this.tokenManager.setToken(formValue.manualToken);
+    // Handle authentication
+    const authType: AuthType = formValue.authType || 'none';
+
+    if (authType === 'bearer' && formValue.authToken) {
+      this.tokenManager.setToken(formValue.authToken);
     }
 
     const config: ApiRequestConfig = {
@@ -129,6 +138,17 @@ export class ConfigPanelFormComponent implements OnInit {
       timeout: formValue.timeout,
       testDuration: formValue.testDuration > 0 ? formValue.testDuration : undefined,
       useFaker: formValue.useFaker,
+      authType: authType,
+      authToken: authType === 'bearer' ? formValue.authToken : undefined,
+      basicAuthConfig: authType === 'basic' ? {
+        username: formValue.basicUsername,
+        password: formValue.basicPassword,
+      } : undefined,
+      apiKeyAuthConfig: authType === 'apikey' ? {
+        key: formValue.apiKeyName,
+        value: formValue.apiKeyValue,
+        addTo: formValue.apiKeyAddTo,
+      } : undefined,
     };
 
     console.log('[ConfigPanelForm] Submitting config:', config);
@@ -219,6 +239,22 @@ export class ConfigPanelFormComponent implements OnInit {
       'x-www-form-urlencoded': 'URL Encoded',
       'xml': 'XML',
       'plain-text': 'Plain Text',
+    };
+    return typeMap[type];
+  }
+
+  /**
+   * Format auth type for display
+   *
+   * @param type - The auth type to format
+   * @returns Formatted auth type
+   */
+  formatAuthType(type: AuthType): string {
+    const typeMap: Record<AuthType, string> = {
+      'none': 'No Authentication',
+      'bearer': 'Bearer Token',
+      'basic': 'Basic Auth',
+      'apikey': 'API Key',
     };
     return typeMap[type];
   }

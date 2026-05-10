@@ -9,6 +9,28 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 
 export type BodyType = 'json' | 'form-data' | 'x-www-form-urlencoded' | 'xml' | 'plain-text';
 
 /**
+ * Authentication type for API requests
+ */
+export type AuthType = 'none' | 'bearer' | 'basic' | 'apikey';
+
+/**
+ * Basic authentication configuration
+ */
+export interface BasicAuthConfig {
+  username: string;
+  password: string;
+}
+
+/**
+ * API Key authentication configuration
+ */
+export interface ApiKeyAuthConfig {
+  key: string;
+  value: string;
+  addTo: 'header' | 'query';
+}
+
+/**
  * API Request Configuration for stress testing
  */
 export interface ApiRequestConfig {
@@ -63,9 +85,24 @@ export interface ApiRequestConfig {
   followRedirects?: boolean;
 
   /**
-   * Optional authentication token
+   * Authentication type to use for the request
+   */
+  authType?: AuthType;
+
+  /**
+   * Optional authentication token (for Bearer auth)
    */
   authToken?: string;
+
+  /**
+   * Basic authentication configuration
+   */
+  basicAuthConfig?: BasicAuthConfig;
+
+  /**
+   * API Key authentication configuration
+   */
+  apiKeyAuthConfig?: ApiKeyAuthConfig;
 
   /**
    * Test duration in seconds (for continuous load testing)

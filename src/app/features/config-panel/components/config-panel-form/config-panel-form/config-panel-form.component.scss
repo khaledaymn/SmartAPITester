@@ -396,12 +396,72 @@
   }
 }
 
+.auth-section {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(99, 102, 241, 0.05) 100%);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  margin: 2rem 0 1.5rem 0;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+    margin: 1.5rem 0 1rem 0;
+  }
+}
+
+.auth-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: $text-main;
+  text-transform: uppercase;
+  letter-spacing: 0.75px;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.auth-config {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  margin-top: 1rem;
+  animation: slideDown 300ms ease-out;
+
+  .form-group {
+    margin-bottom: 1rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .form-row {
+    margin-bottom: 1rem;
+  }
+
+  .help-text {
+    color: rgba(148, 163, 184, 0.8);
+  }
+}
+
 .auth-faker-settings {
   background: rgba(255, 255, 255, 0.03);
   padding: 1.5rem;
   border-radius: 0.5rem;
   border: 1px dashed rgba(148, 163, 184, 0.2);
   margin: 1.5rem 0;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .checkbox-wrapper {
