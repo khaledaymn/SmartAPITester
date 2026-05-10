@@ -67,9 +67,31 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-// Scrollbar customization
+// Premium custom scrollbar with glassmorphism
 html {
-  @include custom-scrollbar(8px, $bg-dark, $surface-light, $text-muted);
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.5);
+    border-radius: 3px;
+    border: none;
+
+    &:hover {
+      background: rgba(59, 130, 246, 0.8);
+    }
+  }
+
+  /* Firefox */
+  scrollbar-color: rgba(59, 130, 246, 0.5) transparent;
+  scrollbar-width: thin;
 }
 
 // Typography
@@ -176,7 +198,28 @@ select {
 textarea {
   resize: vertical;
   min-height: 100px;
-  @include custom-scrollbar(6px, $surface-dark, $surface-light, $text-muted);
+  
+  /* Custom scrollbar for textarea */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.5);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(59, 130, 246, 0.8);
+    }
+  }
+
+  scrollbar-color: rgba(59, 130, 246, 0.5) rgba(0, 0, 0, 0.2);
+  scrollbar-width: thin;
 }
 
 // Code blocks
@@ -196,7 +239,28 @@ code {
 pre {
   padding: $spacing-md;
   overflow-x: auto;
-  @include custom-scrollbar(6px, $bg-darker, $surface-light, $text-muted);
+  
+  /* Custom scrollbar for code blocks */
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.5);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(59, 130, 246, 0.8);
+    }
+  }
+
+  scrollbar-color: rgba(59, 130, 246, 0.5) rgba(0, 0, 0, 0.3);
+  scrollbar-width: thin;
 
   code {
     background: none;
