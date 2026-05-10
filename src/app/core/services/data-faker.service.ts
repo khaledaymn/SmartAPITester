@@ -98,7 +98,14 @@ export class DataFakerService {
 
     // Smart Key-Based Detection
 
-    if (value === '[FILE_UPLOAD]') {
+    // Support for file upload tags - return as-is so ApiRunnerService can intercept
+    if (
+      value === '[FILE_UPLOAD]' ||
+      value === '[FILE_PDF]' ||
+      value === '[FILE_ZIP]' ||
+      value === '[FILE_DOCX]' ||
+      value === '[FILE_TXT]'
+    ) {
       return value;
     }
 
