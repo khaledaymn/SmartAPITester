@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { concatMap, finalize, delay, tap, catchError, map } from 'rxjs/operators';
+import { mergeMap, finalize, delay, tap, catchError, map } from 'rxjs/operators';
 import { from, of, Observable } from 'rxjs';
 import { ApiRequestConfig } from '../models/request-config.model';
 import { TestResult } from '../models/test-result.model';
@@ -52,7 +52,8 @@ export class ApiRunnerService {
   });
 
   /**
-   * Main execution method
+   * Main execution method with parallel concurrency control
+   * Enables stress testing by executing requests in parallel up to the concurrency limit
    */
   executeTest(config: ApiRequestConfig): void {
     this.results.set([]);
@@ -60,14 +61,26 @@ export class ApiRunnerService {
     this.isTesting.set(true);
 
     const requestIndices = Array.from({ length: config.requestCount }, (_, i) => i);
+    
+    // Determine concurrency limit: use provided value, default to 5, or max out to requestCount
+    const concurrencyLimit = config.concurrency || 5;
 
     from(requestIndices)
       .pipe(
-        concatMap((index) => {
-          // تنفيذ الطلب ثم انتظار الـ Delay المحدد
-          return this.runSingleRequest(config, index).pipe(delay(config.requestDelay || 0));
-        }),
+        // mergeMap enables parallel execution with concurrency control as the second argument
+        // This replaces concatMap's sequential execution with controlled parallelism
+        mergeMap(
+          (index) => {
+            // Execute the request with optional delay between attempts
+            // The delay is applied per request but executes in parallel up to concurrencyLimit
+            return this.runSingleRequest(config, index).pipe(
+              delay(config.requestDelay || 0)
+            );
+          },
+          concurrencyLimit // Second argument: max concurrent requests
+        ),
         finalize(() => {
+          // Finalize block executes once all parallel requests in the stream complete
           this.isTesting.set(false);
           this.progress.set(100);
         }),
