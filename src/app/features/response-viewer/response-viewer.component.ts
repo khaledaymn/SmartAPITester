@@ -95,4 +95,18 @@ export class ResponseViewerComponent {
       this.selectedResult.set(null);
     }
   }
+
+  /**
+   * Export test results as CSV file
+   */
+  onExportCSV(): void {
+    this.apiRunner.exportToCSV();
+  }
+
+  /**
+   * Export test results as JSON file
+   */
+  onExportJSON(): void {
+    this.apiRunner.exportToJSON();
+  }
 }

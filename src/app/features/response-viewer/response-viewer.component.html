@@ -2,15 +2,38 @@
       <!-- Header -->
       <div class="viewer-header">
         <h2 class="viewer-title">Response Inspector</h2>
-        <button
-          class="clear-btn"
-          (click)="onClearResults()"
-          [disabled]="apiRunner.results().length === 0"
-          title="Clear all test results"
-        >
-          <span class="icon">🗑</span>
-          Clear Results
-        </button>
+        <div class="header-actions">
+          <!-- Export Buttons -->
+          <button
+            class="export-btn export-btn-csv"
+            (click)="onExportCSV()"
+            [disabled]="apiRunner.results().length === 0 || apiRunner.isTesting()"
+            title="Download results as CSV"
+          >
+            <span class="icon">📄</span>
+            <span class="label">CSV</span>
+          </button>
+          <button
+            class="export-btn export-btn-json"
+            (click)="onExportJSON()"
+            [disabled]="apiRunner.results().length === 0 || apiRunner.isTesting()"
+            title="Download results as JSON"
+          >
+            <span class="icon">📦</span>
+            <span class="label">JSON</span>
+          </button>
+          
+          <!-- Clear Results Button -->
+          <button
+            class="clear-btn"
+            (click)="onClearResults()"
+            [disabled]="apiRunner.results().length === 0"
+            title="Clear all test results"
+          >
+            <span class="icon">🗑</span>
+            Clear Results
+          </button>
+        </div>
       </div>
 
       <!-- Main Grid: List + Detail -->
