@@ -37,17 +37,17 @@ export class ConfigPanelFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.initializeForm();
-    
+
     // Try to load config from lastConfig signal first (from current session)
     let configToLoad = this.apiRunner.lastConfig();
 
     // If no lastConfig, check localStorage for persistence across page refreshes
     if (!configToLoad) {
-      const storedConfig = this.apiRunner.loadConfigFromStorage();
-      if (storedConfig) {
-        configToLoad = storedConfig;
-      }
-    }
+  const storedConfig = this.apiRunner.loadConfigFromStorage();
+  if (storedConfig && storedConfig.url) {
+    configToLoad = storedConfig as ApiRequestConfig;
+  }
+}
 
     // Pre-fill form with loaded or stored config
     if (configToLoad) {

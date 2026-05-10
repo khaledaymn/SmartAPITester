@@ -78,7 +78,7 @@ export interface TestResult {
   isSuccess: boolean;
 
   url: string;
-  
+  method: string;
   /**
    * Custom error details for debugging
    */

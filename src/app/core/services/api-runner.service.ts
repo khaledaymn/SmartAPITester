@@ -52,7 +52,7 @@ export class ApiRunnerService {
     const times = successes.map((r) => r.timeMs);
 
     // Calculate test duration in milliseconds (from first to last request)
-    const sortedByTime = [...testResults].sort((a, b) => 
+    const sortedByTime = [...testResults].sort((a, b) =>
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
     const firstRequestTime = new Date(sortedByTime[0]?.timestamp).getTime();
@@ -102,7 +102,7 @@ export class ApiRunnerService {
     this.destroy$ = new Subject<void>();
 
     const requestIndices = Array.from({ length: config.requestCount }, (_, i) => i);
-    
+
     // Determine concurrency limit: use provided value, default to 5, or max out to requestCount
     const concurrencyLimit = config.concurrency || 5;
 
@@ -194,6 +194,7 @@ export class ApiRunnerService {
           isSuccess: true,
           statusText: 'OK',
           url: config.url,
+          method: config.method,
         };
         this.addResult(result, index, config.requestCount);
         return result;
@@ -212,6 +213,7 @@ export class ApiRunnerService {
           statusText: error.statusText || 'Error',
           errorMessage: error.message,
           url: config.url,
+          method: config.method,
         };
         this.addResult(result, index, config.requestCount);
         return of(result); // نستخدم of لضمان استمرار الـ Stream في حالة الخطأ
@@ -453,9 +455,9 @@ export class ApiRunnerService {
 
   /**
    * Export test results as CSV
-   * 
+   *
    * CSV Header: URL, Method, Status Code, Status Text, Time (ms), Timestamp, Is Error
-   * 
+   *
    * Properly escapes values and handles special characters
    */
   exportToCSV(): void {
@@ -475,7 +477,7 @@ export class ApiRunnerService {
       result.statusCode?.toString() || '',
       this.escapeCSVValue(result.statusText || ''),
       result.timeMs?.toString() || '',
-      this.escapeCSVValue(result.timestamp || ''),
+      this.escapeCSVValue(result.timestamp?.toISOString() || ''),
       result.isError ? 'true' : 'false',
     ]);
 
@@ -495,7 +497,7 @@ export class ApiRunnerService {
 
   /**
    * Export test results as JSON
-   * 
+   *
    * Exports the full results array with all metadata in formatted JSON
    */
   exportToJSON(): void {
@@ -534,12 +536,12 @@ export class ApiRunnerService {
    */
   private escapeCSVValue(value: string): string {
     if (!value) return '';
-    
+
     // If value contains comma, quote, or newline, wrap in quotes and escape quotes
     if (value.includes(',') || value.includes('"') || value.includes('\n')) {
       return `"${value.replace(/"/g, '""')}"`;
     }
-    
+
     return value;
   }
 
