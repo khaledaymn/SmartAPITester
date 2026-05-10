@@ -22,9 +22,9 @@
             <input
               type="text"
               class="search-input"
-              placeholder="Search by status code..."
-              [(ngModel)]="searchQuery"
-              (ngModelChange)="onSearchChange()"
+              placeholder="Search by status code, text, or body..."
+              [ngModel]="searchTerm()"
+              (ngModelChange)="onSearchChange($event)"
             />
             <span class="search-count">{{ filteredResults().length }}</span>
           </div>
