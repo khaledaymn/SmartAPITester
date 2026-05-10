@@ -18,31 +18,96 @@
     <div class="progress-text">{{ apiRunner.progress() }}%</div>
   </div>
 
-  <!-- Quick Stats Row -->
-  <div class="stats-grid" *ngIf="!minimal">
-    <div class="stat-item">
-      <div class="stat-label">Total</div>
-      <div class="stat-value">{{ apiRunner.testSummary().totalRequests }}</div>
+  <!-- Main Stats (Primary Area) -->
+  <div class="stats-primary" *ngIf="!minimal">
+    <!-- Total Requests Card -->
+    <div class="stat-card stat-card-primary">
+      <div class="stat-card-header">
+        <div class="stat-label">Total Requests</div>
+        <div class="stat-icon">📊</div>
+      </div>
+      <div class="stat-value-large">{{ apiRunner.testSummary().totalRequests }}</div>
+      <div class="stat-description">
+        <span class="success">{{ apiRunner.testSummary().successCount }} successful</span>
+        <span class="separator">•</span>
+        <span class="error">{{ apiRunner.testSummary().errorCount }} failed</span>
+      </div>
     </div>
 
-    <div class="stat-item">
-      <div class="stat-label">Success</div>
-      <div class="stat-value success">{{ apiRunner.testSummary().successCount }}</div>
+    <!-- Success Rate Card -->
+    <div class="stat-card stat-card-success">
+      <div class="stat-card-header">
+        <div class="stat-label">Success Rate</div>
+        <div class="stat-icon">✓</div>
+      </div>
+      <div class="stat-value-large">{{ apiRunner.testSummary().successRate }}%</div>
+      <div class="stat-description">
+        {{ apiRunner.testSummary().totalRequests > 0 ? (apiRunner.testSummary().successCount / apiRunner.testSummary().totalRequests * 100 | number: '1.1-1') : 0 }}% completion
+      </div>
     </div>
+  </div>
 
-    <div class="stat-item">
-      <div class="stat-label">Failed</div>
-      <div class="stat-value error">{{ apiRunner.testSummary().errorCount }}</div>
-    </div>
+  <!-- Performance Details (Secondary Area) -->
+  <div class="stats-secondary" *ngIf="!minimal && apiRunner.testSummary().totalRequests > 0">
+    <div class="performance-grid">
+      <!-- Fastest Request -->
+      <div class="stat-card stat-card-performance">
+        <div class="stat-card-header">
+          <div class="stat-label">Fastest Request</div>
+          <div class="stat-icon">⚡</div>
+        </div>
+        <div class="stat-value-medium">{{ apiRunner.testSummary().minTime }}ms</div>
+      </div>
 
-    <div class="stat-item">
-      <div class="stat-label">Avg Time</div>
-      <div class="stat-value">{{ apiRunner.testSummary().avgTime }}ms</div>
-    </div>
+      <!-- Slowest Request -->
+      <div class="stat-card stat-card-performance">
+        <div class="stat-card-header">
+          <div class="stat-label">Slowest Request</div>
+          <div class="stat-icon">🐢</div>
+        </div>
+        <div class="stat-value-medium">{{ apiRunner.testSummary().maxTime }}ms</div>
+      </div>
 
-    <div class="stat-item">
-      <div class="stat-label">Success Rate</div>
-      <div class="stat-value">{{ apiRunner.testSummary().successRate }}%</div>
+      <!-- Average Time -->
+      <div class="stat-card stat-card-performance">
+        <div class="stat-card-header">
+          <div class="stat-label">Average Time</div>
+          <div class="stat-icon">⏱️</div>
+        </div>
+        <div class="stat-value-medium">{{ apiRunner.testSummary().avgTime }}ms</div>
+      </div>
+
+      <!-- Throughput (RPS) -->
+      <div class="stat-card stat-card-performance">
+        <div class="stat-card-header">
+          <div class="stat-label">Throughput</div>
+          <div class="stat-icon">🚀</div>
+        </div>
+        <div class="stat-value-medium">{{ apiRunner.testSummary().rps }} RPS</div>
+      </div>
+
+      <!-- Test Duration -->
+      <div class="stat-card stat-card-performance">
+        <div class="stat-card-header">
+          <div class="stat-label">Test Duration</div>
+          <div class="stat-icon">⏳</div>
+        </div>
+        <div class="stat-value-medium">{{ apiRunner.testSummary().testDurationSeconds }}s</div>
+      </div>
+
+      <!-- Data Transferred -->
+      <div class="stat-card stat-card-performance">
+        <div class="stat-card-header">
+          <div class="stat-label">Data Transferred</div>
+          <div class="stat-icon">📦</div>
+        </div>
+        <div class="stat-value-medium">
+          {{ apiRunner.testSummary().totalDataTransferred > 1048576 
+            ? (apiRunner.testSummary().totalDataTransferred / 1048576 | number: '1.2-2') + ' MB'
+            : (apiRunner.testSummary().totalDataTransferred / 1024 | number: '1.2-2') + ' KB'
+          }}
+        </div>
+      </div>
     </div>
   </div>
 </div>

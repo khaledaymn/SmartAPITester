@@ -36,12 +36,34 @@ export class ApiRunnerService {
         minTime: 0,
         maxTime: 0,
         successRate: 0,
+        rps: 0,
+        totalDataTransferred: 0,
+        testDurationSeconds: 0,
       };
     }
 
     const errors = testResults.filter((r) => r.isError);
     const successes = testResults.filter((r) => !r.isError);
     const times = successes.map((r) => r.timeMs);
+
+    // Calculate test duration in milliseconds (from first to last request)
+    const sortedByTime = [...testResults].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    const firstRequestTime = new Date(sortedByTime[0]?.timestamp).getTime();
+    const lastRequestTime = new Date(sortedByTime[sortedByTime.length - 1]?.timestamp).getTime();
+    const testDurationMs = Math.max(lastRequestTime - firstRequestTime, 1); // Avoid division by zero
+    const testDurationSeconds = testDurationMs / 1000;
+
+    // Calculate RPS (Requests Per Second) based on successful requests
+    const rps = testDurationSeconds > 0 ? Math.round((successes.length / testDurationSeconds) * 100) / 100 : 0;
+
+    // Estimate total data transferred (rough calculation based on response body sizes)
+    const totalDataTransferred = testResults.reduce((total, result) => {
+      // Estimate size of response body in bytes (approximate)
+      const bodySize = result.responseBody ? new Blob([result.responseBody]).size : 0;
+      return total + bodySize;
+    }, 0);
 
     return {
       totalRequests: testResults.length,
@@ -51,6 +73,9 @@ export class ApiRunnerService {
       minTime: times.length > 0 ? Math.min(...times) : 0,
       maxTime: times.length > 0 ? Math.max(...times) : 0,
       successRate: Math.round((successes.length / testResults.length) * 100),
+      rps,
+      totalDataTransferred,
+      testDurationSeconds: Math.round(testDurationSeconds * 100) / 100,
     };
   });
 
