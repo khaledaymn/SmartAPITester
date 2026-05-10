@@ -197,24 +197,16 @@ export class ApiRunnerService {
     const method = config.method.toUpperCase();
 
     if (method === 'GET' && body && typeof body === 'object') {
-    const params = new URLSearchParams();
+      const params = new URLSearchParams();
+      // Flatten nested objects/arrays into query parameters using recursive helper
+      this.flattenObjectToParams(body, params);
 
-    Object.keys(body).forEach(key => {
-      const value = body[key];
-      if (value !== null && value !== undefined) {
-        if (Array.isArray(value)) {
-          value.forEach(item => params.append(key, item));
-        } else {
-          params.append(key, value);
-        }
+      const queryString = params.toString();
+      if (queryString) {
+        // Properly handle existing query parameters in base URL
+        url += url.includes('?') ? `&${queryString}` : `?${queryString}`;
       }
-    });
-
-    const queryString = params.toString();
-    if (queryString) {
-      url += url.includes('?') ? `&${queryString}` : `?${queryString}`;
     }
-  }
 
     let finalBody = body;
     const hasFileUpload = body && typeof body === 'object' &&
@@ -252,6 +244,61 @@ export class ApiRunnerService {
       default:
         return this.httpClient.get(url, { headers });
     }
+  }
+
+  /**
+   * Recursively flatten nested objects and arrays into URLSearchParams
+   * Handles nested objects using dot notation (e.g., user.id -> "user.id=1")
+   * Handles arrays by repeating the key (e.g., tags -> "tags=a&tags=b")
+   *
+   * @param obj - Object to flatten (may contain nested objects/arrays)
+   * @param params - URLSearchParams to append flattened values to
+   * @param prefix - Current key prefix for nested objects (used recursively)
+   */
+  private flattenObjectToParams(obj: any, params: URLSearchParams, prefix: string = ''): void {
+    Object.keys(obj).forEach(key => {
+      const value = obj[key];
+
+      // Skip null, undefined, or empty string values
+      if (value === null || value === undefined) {
+        return;
+      }
+
+      // Build the parameter key: use prefix for nested objects
+      const paramKey = prefix ? `${prefix}.${key}` : key;
+
+      // Handle arrays: append each element with the same key
+      if (Array.isArray(value)) {
+        value.forEach(item => {
+          if (item !== null && item !== undefined) {
+            // Encode special characters in the value
+            params.append(paramKey, this.encodeParamValue(item));
+          }
+        });
+        return;
+      }
+
+      // Handle nested objects: recursively flatten
+      if (typeof value === 'object' && value.constructor === Object) {
+        this.flattenObjectToParams(value, params, paramKey);
+        return;
+      }
+
+      // Handle primitive values: append directly with encoding
+      params.append(paramKey, this.encodeParamValue(value));
+    });
+  }
+
+  /**
+   * Encode parameter values to handle special characters and spaces
+   * Converts non-string values to strings and applies proper URL encoding
+   *
+   * @param value - Value to encode (can be string, number, boolean, etc.)
+   * @returns Encoded string safe for URL query parameters
+   */
+  private encodeParamValue(value: any): string {
+    const stringValue = typeof value === 'string' ? value : String(value);
+    return encodeURIComponent(stringValue);
   }
 
   private addResult(result: TestResult, index: number, totalRequests: number): void {
