@@ -28,7 +28,8 @@ export class ConfigPanelFormComponent implements OnInit {
   private readonly tokenManager = inject(TokenManagerService);
 
   configForm!: FormGroup;
-  isTesting = this.apiRunner.isTesting;
+  // Read-only alias to apiRunner's isTesting signal
+  readonly isTesting = this.apiRunner.isTesting;
 
   httpMethods: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
   bodyTypes: BodyType[] = ['json', 'form-data', 'x-www-form-urlencoded', 'xml', 'plain-text'];

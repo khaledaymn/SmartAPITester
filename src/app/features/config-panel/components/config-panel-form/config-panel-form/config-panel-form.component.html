@@ -167,26 +167,42 @@
 
   </div>
 
-  <!-- Start/Stop Test Buttons -->
+  <!-- Start/Stop Test Buttons with Status -->
   <div class="form-actions">
-    <button
-      type="submit"
-      class="btn btn-primary btn-lg"
-      [disabled]="!configForm.valid || isTesting()"
-      *ngIf="!isTesting()"
-    >
-      <span class="btn-icon">▶</span>
-      Start Stress Test
-    </button>
+    <!-- Ready to Test State -->
+    <div class="button-group" *ngIf="!isTesting()">
+      <button
+        type="submit"
+        class="btn btn-primary btn-lg"
+        [disabled]="!configForm.valid"
+      >
+        <span class="btn-icon">▶</span>
+        Start Stress Test
+      </button>
+      <p class="status-text">Ready to test</p>
+    </div>
 
-    <button
-      type="button"
-      class="btn btn-danger btn-lg"
-      (click)="onStopTest()"
-      *ngIf="isTesting()"
-    >
-      <span class="btn-icon">⏹</span>
-      Stop Test
-    </button>
+    <!-- Testing in Progress State -->
+    <div class="button-group testing-active" *ngIf="isTesting()">
+      <div class="button-container">
+        <button
+          type="button"
+          class="btn btn-running"
+          disabled
+        >
+          <span class="btn-icon spinner">⏳</span>
+          Running...
+        </button>
+        <button
+          type="button"
+          class="btn btn-danger btn-lg"
+          (click)="onStopTest()"
+        >
+          <span class="btn-icon">⏹</span>
+          Stop Test
+        </button>
+      </div>
+      <p class="status-text">Test in progress...</p>
+    </div>
   </div>
 </form>
