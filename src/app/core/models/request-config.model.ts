@@ -78,6 +78,13 @@ export interface ApiRequestConfig {
   requestDelay?: number;
 
   /**
+   * Maximum number of concurrent HTTP requests to send simultaneously
+   * Controls parallelism in stress testing. If not provided, defaults to 5.
+   * Set to requestCount for maximum parallel pressure.
+   */
+  concurrency?: number;
+
+  /**
    * Created timestamp
    */
   createdAt?: Date;

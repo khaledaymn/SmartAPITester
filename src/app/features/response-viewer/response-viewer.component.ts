@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { signal } from '@angular/core';
+import { signal, computed } from '@angular/core';
 import { ApiRunnerService } from '../../core/services/api-runner.service';
 import { TestResult } from '../../core/models/test-result.model';
 
@@ -39,28 +39,34 @@ export class ResponseViewerComponent {
   /** Currently selected test result */
   selectedResult = signal<TestResult | null>(null);
 
-  /** Search query for filtering */
-  searchQuery = '';
+  /** Search query signal for reactive filtering */
+  searchTerm = signal<string>('');
 
   /**
-   * Filtered results based on search query (status code)
+   * Computed signal for filtered results
+   * Efficiently filters across multiple fields: status code, status text, and response body
+   * Returns full results if search term is empty
+   * Recalculates only when dependencies (results or searchTerm) change
    */
-  filteredResults = () => {
+  filteredResults = computed(() => {
     const results = this.apiRunner.results();
+    const query = this.searchTerm().trim();
 
-    if (!this.searchQuery.trim()) {
+    // Return all results if search is empty for optimal performance
+    if (!query) {
       return results;
     }
 
-    const query = this.searchQuery.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+
+    // Single-pass filter across multiple fields
     return results.filter((result) => {
-      return results.filter((result) => {
-        const codeMatch = result.statusCode?.toString().includes(query) ?? false;
-        const textMatch = result.statusText?.toLowerCase().includes(query) ?? false;
-        return codeMatch || textMatch;
-      });
+      const codeMatch = result.statusCode?.toString().includes(lowerQuery) ?? false;
+      const textMatch = result.statusText?.toLowerCase().includes(lowerQuery) ?? false;
+      const bodyMatch = result.responseBody?.toLowerCase().includes(lowerQuery) ?? false;
+      return codeMatch || textMatch || bodyMatch;
     });
-  };
+  });
 
   /**
    * Select a result for detail view
@@ -79,11 +85,13 @@ export class ResponseViewerComponent {
 
   /**
    * Handle search query changes
+   * Clears selection if the current result is filtered out
    */
-  onSearchChange(): void {
+  onSearchChange(newQuery: string): void {
+    this.searchTerm.set(newQuery);
+
     // If filtered results don't contain current selection, clear it
-    const filtered = this.filteredResults();
-    if (this.selectedResult() && !filtered.includes(this.selectedResult()!)) {
+    if (this.selectedResult() && !this.filteredResults().includes(this.selectedResult()!)) {
       this.selectedResult.set(null);
     }
   }

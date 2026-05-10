@@ -28,6 +28,77 @@ import { faker } from '@faker-js/faker';
 })
 export class DataFakerService {
   /**
+   * Mapping of explicit @ tags to their faker generation methods
+   * Allows users to override automatic key-matching with explicit tags
+   *
+   * @example
+   * "email": "@email" -> faker.internet.email()
+   * "location": "@fullAddress" -> faker.location.streetAddress({ fullAddress: true })
+   * "coords": "@lat" -> faker.location.latitude()
+   */
+  private readonly EXPLICIT_TAG_MAP: Record<string, () => any> = {
+    // Identity Tags
+    '@name': () => faker.person.fullName(),
+    '@firstName': () => faker.person.firstName(),
+    '@lastName': () => faker.person.lastName(),
+    '@fullName': () => faker.person.fullName(),
+    '@job': () => faker.person.jobTitle(),
+    '@jobTitle': () => faker.person.jobTitle(),
+    '@jobDescriptor': () => faker.person.jobDescriptor(),
+
+    // Contact Tags
+    '@email': () => faker.internet.email(),
+    '@emailAddress': () => faker.internet.email(),
+    '@phone': () => {
+      const prefixes = ['010', '011', '012', '015'];
+      const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+      return randomPrefix + faker.string.numeric(8);
+    },
+    '@phone_eg': () => {
+      const prefixes = ['010', '011', '012', '015'];
+      const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+      return randomPrefix + faker.string.numeric(8);
+    },
+    '@website': () => faker.internet.url(),
+    '@url': () => faker.internet.url(),
+
+    // Address Tags
+    '@address': () => faker.location.streetAddress(),
+    '@fullAddress': () => faker.location.streetAddress({ fullAddress: true }),
+    '@city': () => faker.location.city(),
+    '@country': () => faker.location.country(),
+    '@zipCode': () => faker.location.zipCode(),
+    '@postalCode': () => faker.location.zipCode(),
+    '@lat': () => faker.location.latitude(),
+    '@latitude': () => faker.location.latitude(),
+    '@long': () => faker.location.longitude(),
+    '@longitude': () => faker.location.longitude(),
+
+    // Commerce Tags
+    '@price': () => faker.number.float({ min: 10, max: 1000, fractionDigits: 2 }),
+    '@amount': () => faker.number.float({ min: 10, max: 1000, fractionDigits: 2 }),
+    '@currency': () => faker.finance.currencyCode(),
+    '@iban': () => faker.finance.iban(),
+    '@company': () => faker.company.name(),
+    '@companyName': () => faker.company.name(),
+
+    // System Tags
+    '@uuid': () => faker.string.uuid(),
+    '@guid': () => faker.string.uuid(),
+    '@ipv4': () => faker.internet.ipv4(),
+    '@ipv6': () => faker.internet.ipv6(),
+    '@password': () => faker.internet.password({ length: 16, memorable: false }),
+    '@color': () => faker.color.rgb(),
+    '@hexColor': () => faker.color.rgb(),
+
+    // Content Tags
+    '@sentence': () => faker.lorem.sentence(),
+    '@paragraph': () => faker.lorem.paragraph(),
+    '@word': () => faker.lorem.word(),
+    '@title': () => faker.lorem.sentence(3),
+    '@description': () => faker.lorem.paragraph(),
+  };
+  /**
    * Generates random data based on sample object structure.
    * Recursively processes nested objects and arrays.
    *
@@ -81,27 +152,52 @@ export class DataFakerService {
   }
 
   /**
-   * Generates a fake value based on key name (smart detection) or value type (fallback).
+   * Generates a fake value based on explicit @ tags, key name (smart detection), or value type.
    *
    * @param key - The property key name (used for smart detection)
-   * @param value - The original value (used to determine type for fallback)
+   * @param value - The original value (used to check for @ tags and type fallback)
    * @returns Randomly generated value matching the detected type
    *
    * @description
    * Priority order:
-   * 1. Smart key-based detection (checks key name against known patterns)
-   * 2. Type-based fallback (uses typeof to determine generation method)
-   * 3. Default alphanumeric string for unknown cases
+   * 1. Explicit @ tag detection (e.g., "@email", "@fullName") - highest priority, overrides all
+   * 2. Smart key-based detection (checks key name against known patterns)
+   * 3. Type-based fallback (uses typeof to determine generation method)
+   * 4. Default alphanumeric string for unknown cases
+   *
+   * @example
+   * generateFakeValue('anything', '@email') -> 'john@example.com'
+   * generateFakeValue('email', 'user@example.com') -> 'jane@test.com' (key-based, no @ tag)
    */
   private generateFakeValue(key: string, value: any): any {
-    const keyLower = key.toLowerCase();
+    // PRIORITY 1: Check for explicit @ tag override
+    if (typeof value === 'string' && value.startsWith('@')) {
+      const fakeValueGenerator = this.EXPLICIT_TAG_MAP[value];
+      if (fakeValueGenerator) {
+        console.log(`[DataFaker] Using explicit tag: ${value}`);
+        return fakeValueGenerator();
+      } else {
+        // Unrecognized tag - fall back to key-based or type-based detection
+        console.warn(`[DataFaker] Unrecognized tag "${value}". Falling back to key-based detection.`);
+        // Continue to PRIORITY 2 below
+      }
+    }
 
-    // Smart Key-Based Detection
-
-    if (value === '[FILE_UPLOAD]') {
+    // PRIORITY 2: Check for file upload tags (special case, not @ prefixed)
+    if (
+      value === '[FILE_UPLOAD]' ||
+      value === '[FILE_PDF]' ||
+      value === '[FILE_ZIP]' ||
+      value === '[FILE_DOCX]' ||
+      value === '[FILE_TXT]'
+    ) {
       return value;
     }
 
+    // PRIORITY 3: Smart key-based detection
+    const keyLower = key.toLowerCase();
+
+    // Preserve time-like values as-is
     if (
       keyLower.includes('time') ||
       (typeof value === 'string' && /^\d{2}:\d{2}:\d{2}$/.test(value))

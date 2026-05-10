@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, inject } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ApiRequestConfig, BodyType, HttpMethod } from '../../../../../core/models/request-config.model';
@@ -28,14 +28,13 @@ export class ConfigPanelFormComponent implements OnInit {
   private readonly tokenManager = inject(TokenManagerService);
 
   configForm!: FormGroup;
-  isTesting = false;
+  isTesting = this.apiRunner.isTesting;
 
   httpMethods: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
   bodyTypes: BodyType[] = ['json', 'form-data', 'x-www-form-urlencoded', 'xml', 'plain-text'];
 
   ngOnInit(): void {
     this.initializeForm();
-    this.setupTestingStateListener();
     const saved = this.apiRunner.lastConfig();
 
     if (saved) {
@@ -45,6 +44,16 @@ export class ConfigPanelFormComponent implements OnInit {
         sampleBody: typeof saved.sampleBody === 'object' ? JSON.stringify(saved.sampleBody, null, 2) : saved.sampleBody
       });
     }
+
+    // Reactive effect to disable form inputs during testing
+    effect(() => {
+      const testing = this.isTesting();
+      if (testing) {
+        this.configForm.disable();
+      } else {
+        this.configForm.enable();
+      }
+    });
   }
 
   /**
@@ -59,6 +68,7 @@ export class ConfigPanelFormComponent implements OnInit {
       bodyType: ['json'],
       requestCount: [10, [Validators.required, Validators.min(1), Validators.max(10000)]],
       requestDelay: [0, [Validators.required, Validators.min(0), Validators.max(10000)]],
+      concurrency: [5, [Validators.required, Validators.min(1), Validators.max(100)]],
       headers: [''],
       sampleBody: [''],
       timeout: [30000, [Validators.min(1000), Validators.max(120000)]],
@@ -70,17 +80,6 @@ export class ConfigPanelFormComponent implements OnInit {
     this.configForm.valueChanges.subscribe(val => {
       this.apiRunner.lastConfig.set(val);
     });
-  }
-
-  /**
-   * Setup listener for test execution state
-   *
-   * @private
-   */
-  private setupTestingStateListener(): void {
-    // Track testing state from the ApiRunnerService
-    // In a real scenario, you'd use an effect or subscribe to the isTesting signal
-    this.isTesting = this.apiRunner.isTesting();
   }
 
   /**
@@ -123,6 +122,7 @@ export class ConfigPanelFormComponent implements OnInit {
       bodyType: formValue.bodyType,
       requestCount: formValue.requestCount,
       requestDelay: formValue.requestDelay,
+      concurrency: formValue.concurrency,
       headers,
       sampleBody,
       timeout: formValue.timeout,
@@ -133,6 +133,13 @@ export class ConfigPanelFormComponent implements OnInit {
     console.log('[ConfigPanelForm] Submitting config:', config);
     this.apiRunner.lastConfig.set(config);
     this.configSubmitted.emit(config);
+  }
+
+  /**
+   * Stop the currently running test
+   */
+  onStopTest(): void {
+    this.apiRunner.stopTest();
   }
 
   private tryParseJson(value: string): any {

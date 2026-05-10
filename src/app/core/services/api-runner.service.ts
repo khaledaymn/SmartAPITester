@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { concatMap, finalize, delay, tap, catchError, map } from 'rxjs/operators';
-import { from, of, Observable } from 'rxjs';
+import { mergeMap, finalize, delay, tap, catchError, map, takeUntil } from 'rxjs/operators';
+import { from, of, Observable, Subject } from 'rxjs';
 import { ApiRequestConfig } from '../models/request-config.model';
 import { TestResult } from '../models/test-result.model';
 import { DataFakerService } from './data-faker.service';
@@ -14,6 +14,9 @@ export class ApiRunnerService {
   private readonly httpClient = inject(HttpClient);
   private readonly dataFaker = inject(DataFakerService);
   private readonly tokenManager = inject(TokenManagerService);
+
+  // Cancellation Subject for manual stop functionality
+  private destroy$ = new Subject<void>();
 
   // State Signals
   results = signal<TestResult[]>([]);
@@ -52,24 +55,44 @@ export class ApiRunnerService {
   });
 
   /**
-   * Main execution method
+   * Main execution method with parallel concurrency control
+   * Enables stress testing by executing requests in parallel up to the concurrency limit
    */
   executeTest(config: ApiRequestConfig): void {
     this.results.set([]);
     this.progress.set(0);
     this.isTesting.set(true);
+    this.lastConfig.set(config);
+
+    // Create a fresh destroy subject for this test run
+    this.destroy$ = new Subject<void>();
 
     const requestIndices = Array.from({ length: config.requestCount }, (_, i) => i);
+    
+    // Determine concurrency limit: use provided value, default to 5, or max out to requestCount
+    const concurrencyLimit = config.concurrency || 5;
 
     from(requestIndices)
       .pipe(
-        concatMap((index) => {
-          // تنفيذ الطلب ثم انتظار الـ Delay المحدد
-          return this.runSingleRequest(config, index).pipe(delay(config.requestDelay || 0));
-        }),
+        // mergeMap enables parallel execution with concurrency control as the second argument
+        // This replaces concatMap's sequential execution with controlled parallelism
+        mergeMap(
+          (index) => {
+            // Execute the request with optional delay between attempts
+            // The delay is applied per request but executes in parallel up to concurrencyLimit
+            return this.runSingleRequest(config, index).pipe(
+              delay(config.requestDelay || 0)
+            );
+          },
+          concurrencyLimit // Second argument: max concurrent requests
+        ),
+        // takeUntil ensures the stream unsubscribes when stopTest() is called
+        // This cancels pending requests immediately
+        takeUntil(this.destroy$),
         finalize(() => {
+          // Finalize block executes once all requests complete or when stream is cancelled
           this.isTesting.set(false);
-          this.progress.set(100);
+          // Keep progress at current value to show where the test was stopped
         }),
       )
       .subscribe({
@@ -78,6 +101,22 @@ export class ApiRunnerService {
           this.isTesting.set(false);
         },
       });
+  }
+
+  /**
+   * Manually stop the ongoing stress test
+   * Unsubscribes from the request stream, cancelling pending requests
+   * Progress is preserved to show where the test was stopped
+   */
+  stopTest(): void {
+    if (!this.isTesting()) {
+      console.warn('[API Runner] No test is currently running');
+      return;
+    }
+
+    console.log('[API Runner] Test manually aborted by user. Stopping all pending requests...');
+    this.destroy$.next();
+    this.isTesting.set(false);
   }
 
   /**
@@ -158,43 +197,24 @@ export class ApiRunnerService {
     const method = config.method.toUpperCase();
 
     if (method === 'GET' && body && typeof body === 'object') {
-    const params = new URLSearchParams();
+      const params = new URLSearchParams();
+      // Flatten nested objects/arrays into query parameters using recursive helper
+      this.flattenObjectToParams(body, params);
 
-    Object.keys(body).forEach(key => {
-      const value = body[key];
-      if (value !== null && value !== undefined) {
-        if (Array.isArray(value)) {
-          value.forEach(item => params.append(key, item));
-        } else {
-          params.append(key, value);
-        }
+      const queryString = params.toString();
+      if (queryString) {
+        // Properly handle existing query parameters in base URL
+        url += url.includes('?') ? `&${queryString}` : `?${queryString}`;
       }
-    });
-
-    const queryString = params.toString();
-    if (queryString) {
-      url += url.includes('?') ? `&${queryString}` : `?${queryString}`;
     }
-  }
 
     let finalBody = body;
     const hasFileUpload = body && typeof body === 'object' &&
-                      Object.values(body).some(val => val === '[FILE_UPLOAD]');
+                      this.hasFileTagsRecursive(body);
 
-  if ((config.bodyType === 'form-data' || hasFileUpload) && typeof body === 'object' && method !== 'GET') {
-    const formData = new FormData();
-
-      Object.keys(body).forEach((key) => {
-        const value = body[key];
-
-        if (value === '[FILE_UPLOAD]') {
-          const mockFile = new Blob([''], { type: 'image/png' });
-          formData.append(key, mockFile, 'test-image.png');
-        } else {
-          formData.append(key, value !== null && value !== undefined ? value.toString() : '');
-        }
-      });
-
+    if ((config.bodyType === 'form-data' || hasFileUpload) && typeof body === 'object' && method !== 'GET') {
+      const formData = new FormData();
+      this.appendFormDataRecursive(body, formData);
       finalBody = formData;
 
       if (headers['Content-Type']) {
@@ -213,6 +233,166 @@ export class ApiRunnerService {
       default:
         return this.httpClient.get(url, { headers });
     }
+  }
+
+  /**
+   * File tag metadata mapping
+   * Maps file tags to their MIME types and extensions
+   */
+  private readonly FILE_TAG_MAP: Record<string, { mimeType: string; extension: string }> = {
+    '[FILE_UPLOAD]': { mimeType: 'image/png', extension: 'png' },
+    '[FILE_PDF]': { mimeType: 'application/pdf', extension: 'pdf' },
+    '[FILE_ZIP]': { mimeType: 'application/zip', extension: 'zip' },
+    '[FILE_DOCX]': { mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', extension: 'docx' },
+    '[FILE_TXT]': { mimeType: 'text/plain', extension: 'txt' },
+  };
+
+  /**
+   * Check if an object or its nested properties contain any file tags
+   * Works recursively through nested objects and arrays
+   *
+   * @param obj - Object to check for file tags
+   * @returns True if any file tags are found
+   */
+  private hasFileTagsRecursive(obj: any): boolean {
+    if (obj === null || obj === undefined) {
+      return false;
+    }
+
+    if (typeof obj !== 'object') {
+      return Object.keys(this.FILE_TAG_MAP).includes(String(obj));
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.some(item => this.hasFileTagsRecursive(item));
+    }
+
+    // Check object values recursively
+    return Object.values(obj).some(value => {
+      if (Object.keys(this.FILE_TAG_MAP).includes(String(value))) {
+        return true;
+      }
+      return typeof value === 'object' && this.hasFileTagsRecursive(value);
+    });
+  }
+
+  /**
+   * Recursively append form data from object, handling file tags and nested structures
+   * Converts file tags to Blob objects with appropriate MIME types
+   *
+   * @param obj - Object to append to FormData
+   * @param formData - FormData instance to append to
+   * @param prefix - Current key prefix for nested objects (used recursively)
+   */
+  private appendFormDataRecursive(obj: any, formData: FormData, prefix: string = ''): void {
+    Object.keys(obj).forEach((key) => {
+      const value = obj[key];
+
+      // Skip null and undefined values
+      if (value === null || value === undefined) {
+        return;
+      }
+
+      // Build the form field name: use prefix for nested objects
+      const fieldName = prefix ? `${prefix}.${key}` : key;
+
+      // Check if value is a file tag
+      const fileTagInfo = this.FILE_TAG_MAP[String(value)];
+      if (fileTagInfo) {
+        // Create a Blob with the file's MIME type and dummy content
+        const dummyContent = `Dummy content for ${fileTagInfo.extension}`;
+        const mockFile = new Blob([dummyContent], { type: fileTagInfo.mimeType });
+        const fileName = `test-document.${fileTagInfo.extension}`;
+        formData.append(fieldName, mockFile, fileName);
+        return;
+      }
+
+      // Handle arrays: append each element with the same field name
+      if (Array.isArray(value)) {
+        value.forEach((item, index) => {
+          if (item === null || item === undefined) {
+            return;
+          }
+
+          // Check if array item is a file tag
+          const itemFileTagInfo = this.FILE_TAG_MAP[String(item)];
+          if (itemFileTagInfo) {
+            const dummyContent = `Dummy content for ${itemFileTagInfo.extension}`;
+            const mockFile = new Blob([dummyContent], { type: itemFileTagInfo.mimeType });
+            const fileName = `test-document.${itemFileTagInfo.extension}`;
+            formData.append(fieldName, mockFile, fileName);
+          } else {
+            // Regular array items are appended as strings
+            formData.append(fieldName, item.toString());
+          }
+        });
+        return;
+      }
+
+      // Handle nested objects: recursively append
+      if (typeof value === 'object' && value.constructor === Object) {
+        this.appendFormDataRecursive(value, formData, fieldName);
+        return;
+      }
+
+      // Handle primitive values: append directly as strings
+      formData.append(fieldName, value.toString());
+    });
+  }
+
+  /**
+   * Recursively flatten nested objects and arrays into URLSearchParams
+   * Handles nested objects using dot notation (e.g., user.id -> "user.id=1")
+   * Handles arrays by repeating the key (e.g., tags -> "tags=a&tags=b")
+   *
+   * @param obj - Object to flatten (may contain nested objects/arrays)
+   * @param params - URLSearchParams to append flattened values to
+   * @param prefix - Current key prefix for nested objects (used recursively)
+   */
+  private flattenObjectToParams(obj: any, params: URLSearchParams, prefix: string = ''): void {
+    Object.keys(obj).forEach(key => {
+      const value = obj[key];
+
+      // Skip null, undefined, or empty string values
+      if (value === null || value === undefined) {
+        return;
+      }
+
+      // Build the parameter key: use prefix for nested objects
+      const paramKey = prefix ? `${prefix}.${key}` : key;
+
+      // Handle arrays: append each element with the same key
+      if (Array.isArray(value)) {
+        value.forEach(item => {
+          if (item !== null && item !== undefined) {
+            // Encode special characters in the value
+            params.append(paramKey, this.encodeParamValue(item));
+          }
+        });
+        return;
+      }
+
+      // Handle nested objects: recursively flatten
+      if (typeof value === 'object' && value.constructor === Object) {
+        this.flattenObjectToParams(value, params, paramKey);
+        return;
+      }
+
+      // Handle primitive values: append directly with encoding
+      params.append(paramKey, this.encodeParamValue(value));
+    });
+  }
+
+  /**
+   * Encode parameter values to handle special characters and spaces
+   * Converts non-string values to strings and applies proper URL encoding
+   *
+   * @param value - Value to encode (can be string, number, boolean, etc.)
+   * @returns Encoded string safe for URL query parameters
+   */
+  private encodeParamValue(value: any): string {
+    const stringValue = typeof value === 'string' ? value : String(value);
+    return encodeURIComponent(stringValue);
   }
 
   private addResult(result: TestResult, index: number, totalRequests: number): void {
