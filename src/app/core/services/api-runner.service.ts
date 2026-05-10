@@ -185,6 +185,7 @@ export class ApiRunnerService {
           isSuccess: true,
           statusText: 'OK',
           url: config.url,
+          method: config.method,
         };
         this.addResult(result, index, config.requestCount);
         return result;
@@ -203,6 +204,7 @@ export class ApiRunnerService {
           statusText: error.statusText || 'Error',
           errorMessage: error.message,
           url: config.url,
+          method: config.method,
         };
         this.addResult(result, index, config.requestCount);
         return of(result); // نستخدم of لضمان استمرار الـ Stream في حالة الخطأ
@@ -466,7 +468,7 @@ export class ApiRunnerService {
       result.statusCode?.toString() || '',
       this.escapeCSVValue(result.statusText || ''),
       result.timeMs?.toString() || '',
-      this.escapeCSVValue(result.timestamp || ''),
+      this.escapeCSVValue(result.timestamp instanceof Date ? result.timestamp.toISOString() : (result.timestamp || '')),
       result.isError ? 'true' : 'false',
     ]);
 
