@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { mergeMap, finalize, delay, tap, catchError, map } from 'rxjs/operators';
-import { from, of, Observable } from 'rxjs';
+import { mergeMap, finalize, delay, tap, catchError, map, takeUntil } from 'rxjs/operators';
+import { from, of, Observable, Subject } from 'rxjs';
 import { ApiRequestConfig } from '../models/request-config.model';
 import { TestResult } from '../models/test-result.model';
 import { DataFakerService } from './data-faker.service';
@@ -14,6 +14,9 @@ export class ApiRunnerService {
   private readonly httpClient = inject(HttpClient);
   private readonly dataFaker = inject(DataFakerService);
   private readonly tokenManager = inject(TokenManagerService);
+
+  // Cancellation Subject for manual stop functionality
+  private destroy$ = new Subject<void>();
 
   // State Signals
   results = signal<TestResult[]>([]);
@@ -59,6 +62,10 @@ export class ApiRunnerService {
     this.results.set([]);
     this.progress.set(0);
     this.isTesting.set(true);
+    this.lastConfig.set(config);
+
+    // Create a fresh destroy subject for this test run
+    this.destroy$ = new Subject<void>();
 
     const requestIndices = Array.from({ length: config.requestCount }, (_, i) => i);
     
@@ -79,10 +86,13 @@ export class ApiRunnerService {
           },
           concurrencyLimit // Second argument: max concurrent requests
         ),
+        // takeUntil ensures the stream unsubscribes when stopTest() is called
+        // This cancels pending requests immediately
+        takeUntil(this.destroy$),
         finalize(() => {
-          // Finalize block executes once all parallel requests in the stream complete
+          // Finalize block executes once all requests complete or when stream is cancelled
           this.isTesting.set(false);
-          this.progress.set(100);
+          // Keep progress at current value to show where the test was stopped
         }),
       )
       .subscribe({
@@ -91,6 +101,22 @@ export class ApiRunnerService {
           this.isTesting.set(false);
         },
       });
+  }
+
+  /**
+   * Manually stop the ongoing stress test
+   * Unsubscribes from the request stream, cancelling pending requests
+   * Progress is preserved to show where the test was stopped
+   */
+  stopTest(): void {
+    if (!this.isTesting()) {
+      console.warn('[API Runner] No test is currently running');
+      return;
+    }
+
+    console.log('[API Runner] Test manually aborted by user. Stopping all pending requests...');
+    this.destroy$.next();
+    this.isTesting.set(false);
   }
 
   /**
