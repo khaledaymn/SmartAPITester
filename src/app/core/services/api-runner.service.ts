@@ -441,4 +441,111 @@ export class ApiRunnerService {
     this.progress.set(0);
     this.isTesting.set(false);
   }
+
+  /**
+   * Export test results as CSV
+   * 
+   * CSV Header: URL, Method, Status Code, Status Text, Time (ms), Timestamp, Is Error
+   * 
+   * Properly escapes values and handles special characters
+   */
+  exportToCSV(): void {
+    const results = this.results();
+    if (results.length === 0) {
+      console.warn('[ApiRunner] No results to export');
+      return;
+    }
+
+    // Define CSV headers
+    const headers = ['URL', 'Method', 'Status Code', 'Status Text', 'Time (ms)', 'Timestamp', 'Is Error'];
+
+    // Map results to CSV rows with proper escaping
+    const rows = results.map((result) => [
+      this.escapeCSVValue(result.url || ''),
+      this.escapeCSVValue(result.method || ''),
+      result.statusCode?.toString() || '',
+      this.escapeCSVValue(result.statusText || ''),
+      result.timeMs?.toString() || '',
+      this.escapeCSVValue(result.timestamp || ''),
+      result.isError ? 'true' : 'false',
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(',')),
+    ].join('\n');
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `api-test-report-${timestamp}.csv`;
+
+    // Trigger download
+    this.downloadFile(csvContent, filename, 'text/csv;charset=utf-8;');
+  }
+
+  /**
+   * Export test results as JSON
+   * 
+   * Exports the full results array with all metadata in formatted JSON
+   */
+  exportToJSON(): void {
+    const results = this.results();
+    if (results.length === 0) {
+      console.warn('[ApiRunner] No results to export');
+      return;
+    }
+
+    // Add metadata to the export
+    const exportData = {
+      metadata: {
+        exportedAt: new Date().toISOString(),
+        totalRequests: results.length,
+        successCount: results.filter(r => !r.isError).length,
+        errorCount: results.filter(r => r.isError).length,
+        testConfig: this.lastConfig(),
+      },
+      results: results,
+    };
+
+    // Convert to formatted JSON
+    const jsonContent = JSON.stringify(exportData, null, 2);
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `api-test-report-${timestamp}.json`;
+
+    // Trigger download
+    this.downloadFile(jsonContent, filename, 'application/json;charset=utf-8;');
+  }
+
+  /**
+   * Helper method to escape CSV values
+   * Wraps values in quotes and escapes internal quotes
+   */
+  private escapeCSVValue(value: string): string {
+    if (!value) return '';
+    
+    // If value contains comma, quote, or newline, wrap in quotes and escape quotes
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replace(/"/g, '""')}"`;
+    }
+    
+    return value;
+  }
+
+  /**
+   * Helper method to trigger file download
+   */
+  private downloadFile(content: string, filename: string, mimeType: string): void {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 }
