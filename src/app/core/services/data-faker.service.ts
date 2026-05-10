@@ -64,7 +64,7 @@ export class DataFakerService {
 
     // Address Tags
     '@address': () => faker.location.streetAddress(),
-    '@fullAddress': () => faker.location.streetAddress({ useFullAddress: true }),
+    '@fullAddress': () => faker.location.streetAddress({ fullAddress: true }),
     '@city': () => faker.location.city(),
     '@country': () => faker.location.country(),
     '@zipCode': () => faker.location.zipCode(),
@@ -178,9 +178,7 @@ export class DataFakerService {
         return fakeValueGenerator();
       } else {
         // Unrecognized tag - fall back to key-based or type-based detection
-        console.warn(
-          `[DataFaker] Unrecognized tag "${value}". Falling back to key-based detection.`,
-        );
+        console.warn(`[DataFaker] Unrecognized tag "${value}". Falling back to key-based detection.`);
         // Continue to PRIORITY 2 below
       }
     }

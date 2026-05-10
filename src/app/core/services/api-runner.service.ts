@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, inject, signal, computed, PLATFORM_ID } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { mergeMap, finalize, delay, tap, catchError, map, takeUntil } from 'rxjs/operators';
 import { from, of, Observable, Subject } from 'rxjs';
@@ -6,6 +6,10 @@ import { ApiRequestConfig } from '../models/request-config.model';
 import { TestResult } from '../models/test-result.model';
 import { DataFakerService } from './data-faker.service';
 import { TokenManagerService } from './token-manager.service';
+import { isPlatformBrowser } from '@angular/common';
+
+// LocalStorage key for persisting config
+const CONFIG_STORAGE_KEY = 'smartapitest_config';
 
 @Injectable({
   providedIn: 'root',
@@ -14,6 +18,7 @@ export class ApiRunnerService {
   private readonly httpClient = inject(HttpClient);
   private readonly dataFaker = inject(DataFakerService);
   private readonly tokenManager = inject(TokenManagerService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   // Cancellation Subject for manual stop functionality
   private destroy$ = new Subject<void>();
@@ -82,12 +87,16 @@ export class ApiRunnerService {
   /**
    * Main execution method with parallel concurrency control
    * Enables stress testing by executing requests in parallel up to the concurrency limit
+   * Persists key config settings (URL, Method, Concurrency) to localStorage
    */
   executeTest(config: ApiRequestConfig): void {
     this.results.set([]);
     this.progress.set(0);
     this.isTesting.set(true);
     this.lastConfig.set(config);
+
+    // Save essential config to localStorage for persistence across page refreshes
+    this.saveConfigToStorage(config);
 
     // Create a fresh destroy subject for this test run
     this.destroy$ = new Subject<void>();
@@ -185,7 +194,6 @@ export class ApiRunnerService {
           isSuccess: true,
           statusText: 'OK',
           url: config.url,
-          method: config.method,
         };
         this.addResult(result, index, config.requestCount);
         return result;
@@ -204,7 +212,6 @@ export class ApiRunnerService {
           statusText: error.statusText || 'Error',
           errorMessage: error.message,
           url: config.url,
-          method: config.method,
         };
         this.addResult(result, index, config.requestCount);
         return of(result); // نستخدم of لضمان استمرار الـ Stream في حالة الخطأ
@@ -468,7 +475,7 @@ export class ApiRunnerService {
       result.statusCode?.toString() || '',
       this.escapeCSVValue(result.statusText || ''),
       result.timeMs?.toString() || '',
-      this.escapeCSVValue(result.timestamp instanceof Date ? result.timestamp.toISOString() : (result.timestamp || '')),
+      this.escapeCSVValue(result.timestamp || ''),
       result.isError ? 'true' : 'false',
     ]);
 
@@ -549,5 +556,64 @@ export class ApiRunnerService {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Save essential config to localStorage
+   * Persists URL, Method, and Concurrency settings for recovery after page refresh
+   * Safely checks if running in browser environment
+   */
+  private saveConfigToStorage(config: ApiRequestConfig): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    try {
+      const configToStore = {
+        url: config.url,
+        method: config.method,
+        concurrency: config.concurrency,
+      };
+      localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(configToStore));
+    } catch (error) {
+      console.warn('[ApiRunner] Failed to save config to localStorage:', error);
+    }
+  }
+
+  /**
+   * Load config from localStorage if available
+   * Returns null if no saved config exists or on server-side rendering
+   * Safely handles localStorage errors
+   */
+  loadConfigFromStorage(): Partial<ApiRequestConfig> | null {
+    if (!isPlatformBrowser(this.platformId)) {
+      return null;
+    }
+
+    try {
+      const stored = localStorage.getItem(CONFIG_STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.warn('[ApiRunner] Failed to load config from localStorage:', error);
+    }
+
+    return null;
+  }
+
+  /**
+   * Clear saved config from localStorage
+   */
+  clearStoredConfig(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    try {
+      localStorage.removeItem(CONFIG_STORAGE_KEY);
+    } catch (error) {
+      console.warn('[ApiRunner] Failed to clear config from localStorage:', error);
+    }
   }
 }

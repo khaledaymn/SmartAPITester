@@ -37,13 +37,24 @@ export class ConfigPanelFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.initializeForm();
-    const saved = this.apiRunner.lastConfig();
+    
+    // Try to load config from lastConfig signal first (from current session)
+    let configToLoad = this.apiRunner.lastConfig();
 
-    if (saved) {
+    // If no lastConfig, check localStorage for persistence across page refreshes
+    if (!configToLoad) {
+      const storedConfig = this.apiRunner.loadConfigFromStorage();
+      if (storedConfig) {
+        configToLoad = storedConfig;
+      }
+    }
+
+    // Pre-fill form with loaded or stored config
+    if (configToLoad) {
       this.configForm.patchValue({
-        ...saved,
-        headers: typeof saved.headers === 'object' ? JSON.stringify(saved.headers, null, 2) : saved.headers,
-        sampleBody: typeof saved.sampleBody === 'object' ? JSON.stringify(saved.sampleBody, null, 2) : saved.sampleBody
+        ...configToLoad,
+        headers: typeof configToLoad.headers === 'object' ? JSON.stringify(configToLoad.headers, null, 2) : configToLoad.headers,
+        sampleBody: typeof configToLoad.sampleBody === 'object' ? JSON.stringify(configToLoad.sampleBody, null, 2) : configToLoad.sampleBody
       });
     }
 
