@@ -312,6 +312,7 @@ export class ApiRunnerService {
     });
   }
 
+
   /**
    * Recursively append form data from object, handling file tags and nested structures
    * Converts file tags to Blob objects with appropriate MIME types
@@ -321,60 +322,70 @@ export class ApiRunnerService {
    * @param prefix - Current key prefix for nested objects (used recursively)
    */
   private appendFormDataRecursive(obj: any, formData: FormData, prefix: string = ''): void {
-    Object.keys(obj).forEach((key) => {
-      const value = obj[key];
+  // التأكد أن الكائن ليس فارغاً
+  if (obj === null || obj === undefined) return;
 
-      // Skip null and undefined values
-      if (value === null || value === undefined) {
-        return;
-      }
+  Object.keys(obj).forEach((key) => {
+    const value = obj[key];
 
-      // Build the form field name: use prefix for nested objects
-      const fieldName = prefix ? `${prefix}.${key}` : key;
+    // 1. تخطي القيم الفارغة
+    if (value === null || value === undefined) {
+      return;
+    }
 
-      // Check if value is a file tag
-      const fileTagInfo = this.FILE_TAG_MAP[String(value)];
-      if (fileTagInfo) {
-        // Create a Blob with the file's MIME type and dummy content
-        const dummyContent = `Dummy content for ${fileTagInfo.extension}`;
-        const mockFile = new Blob([dummyContent], { type: fileTagInfo.mimeType });
-        const fileName = `test-document.${fileTagInfo.extension}`;
-        formData.append(fieldName, mockFile, fileName);
-        return;
-      }
+    // 2. بناء اسم الحقل (FieldName)
+    // لاحظ: نستخدم النقطة (.) للأوبجكت، وسنتعامل مع المصفوفة بالأسفل
+    const fieldName = prefix ? `${prefix}.${key}` : key;
 
-      // Handle arrays: append each element with the same field name
-      if (Array.isArray(value)) {
-        value.forEach((item, index) => {
-          if (item === null || item === undefined) {
-            return;
-          }
+    // 3. التحقق من "تاجات الملفات" (الميزة التي برمجناها سابقاً)
+    const fileTagInfo = this.FILE_TAG_MAP[String(value)];
+    if (fileTagInfo) {
+      const dummyContent = `Dummy content for ${fileTagInfo.extension}`;
+      const mockFile = new Blob([dummyContent], { type: fileTagInfo.mimeType });
+      const fileName = `test-document.${fileTagInfo.extension}`;
+      formData.append(fieldName, mockFile, fileName);
+      return;
+    }
 
-          // Check if array item is a file tag
-          const itemFileTagInfo = this.FILE_TAG_MAP[String(item)];
-          if (itemFileTagInfo) {
-            const dummyContent = `Dummy content for ${itemFileTagInfo.extension}`;
-            const mockFile = new Blob([dummyContent], { type: itemFileTagInfo.mimeType });
-            const fileName = `test-document.${itemFileTagInfo.extension}`;
-            formData.append(fieldName, mockFile, fileName);
-          } else {
-            // Regular array items are appended as strings
-            formData.append(fieldName, item.toString());
-          }
-        });
-        return;
-      }
+    // 4. التعامل مع المصفوفات (الـ Arrays) - الجزء الأهم للإصلاح
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => {
+        if (item === null || item === undefined) return;
 
-      // Handle nested objects: recursively append
-      if (typeof value === 'object' && value.constructor === Object) {
-        this.appendFormDataRecursive(value, formData, fieldName);
-        return;
-      }
+        // بناء اسم الحقل للمصفوفة بالشكل الذي يفهمه ASP.NET Core: Key[0]
+        const arrayFieldName = `${fieldName}[${index}]`;
 
-      // Handle primitive values: append directly as strings
-      formData.append(fieldName, value.toString());
-    });
-  }
+        // إذا كان العنصر داخل المصفوفة عبارة عن "تاجات ملفات"
+        const itemFileTagInfo = this.FILE_TAG_MAP[String(item)];
+        if (itemFileTagInfo) {
+          const dummyContent = `Dummy content for ${itemFileTagInfo.extension}`;
+          const mockFile = new Blob([dummyContent], { type: itemFileTagInfo.mimeType });
+          const fileName = `test-document.${itemFileTagInfo.extension}`;
+          formData.append(arrayFieldName, mockFile, fileName);
+        }
+        // إذا كان العنصر داخل المصفوفة عبارة عن Object (زي InvoiceModels)
+        else if (typeof item === 'object' && item !== null) {
+          this.appendFormDataRecursive(item, formData, arrayFieldName);
+        }
+        // إذا كان عنصراً بسيطاً (String, Number)
+        else {
+          formData.append(arrayFieldName, item.toString());
+        }
+      });
+      return;
+    }
+
+    // 5. التعامل مع الكائنات المتداخلة (Nested Objects)
+    if (typeof value === 'object' && value.constructor === Object) {
+      this.appendFormDataRecursive(value, formData, fieldName);
+      return;
+    }
+
+    // 6. التعامل مع القيم البسيطة (الـ Primitive)
+    // تأكد من إرسالها كـ string أو Blob مباشرة
+    formData.append(fieldName, value.toString());
+  });
+}
 
   /**
    * Recursively flatten nested objects and arrays into URLSearchParams
