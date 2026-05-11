@@ -178,6 +178,9 @@ export class DataFakerService {
    */
   private generateFakeValue(key: string, value: any): any {
     // PRIORITY 1: Check for explicit @ tag override (with template system support)
+    if (typeof value === 'string' && !value.includes('@') && !value.startsWith('[FILE_')) {
+      return value;
+    }
     if (typeof value === 'string') {
       // Check if string contains @ tags (either single tag or template)
       if (value.includes('@')) {
