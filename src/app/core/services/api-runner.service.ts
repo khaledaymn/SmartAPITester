@@ -316,76 +316,75 @@ export class ApiRunnerService {
   /**
    * Recursively append form data from object, handling file tags and nested structures
    * Converts file tags to Blob objects with appropriate MIME types
+   * Supports ASP.NET Core array formatting with indexed keys (e.g., Items[0].Name)
    *
    * @param obj - Object to append to FormData
    * @param formData - FormData instance to append to
    * @param prefix - Current key prefix for nested objects (used recursively)
    */
   private appendFormDataRecursive(obj: any, formData: FormData, prefix: string = ''): void {
-  // التأكد أن الكائن ليس فارغاً
-  if (obj === null || obj === undefined) return;
+    // Ensure the object is not empty
+    if (obj === null || obj === undefined) return;
 
-  Object.keys(obj).forEach((key) => {
-    const value = obj[key];
+    Object.keys(obj).forEach((key) => {
+      const value = obj[key];
 
-    // 1. تخطي القيم الفارغة
-    if (value === null || value === undefined) {
-      return;
-    }
+      // Skip null/undefined values
+      if (value === null || value === undefined) {
+        return;
+      }
 
-    // 2. بناء اسم الحقل (FieldName)
-    // لاحظ: نستخدم النقطة (.) للأوبجكت، وسنتعامل مع المصفوفة بالأسفل
-    const fieldName = prefix ? `${prefix}.${key}` : key;
+      // Build field name: use dot notation for nested objects
+      const fieldName = prefix ? `${prefix}.${key}` : key;
 
-    // 3. التحقق من "تاجات الملفات" (الميزة التي برمجناها سابقاً)
-    const fileTagInfo = this.FILE_TAG_MAP[String(value)];
-    if (fileTagInfo) {
-      const dummyContent = `Dummy content for ${fileTagInfo.extension}`;
-      const mockFile = new Blob([dummyContent], { type: fileTagInfo.mimeType });
-      const fileName = `test-document.${fileTagInfo.extension}`;
-      formData.append(fieldName, mockFile, fileName);
-      return;
-    }
+      // Check for file upload tags
+      const fileTagInfo = this.FILE_TAG_MAP[String(value)];
+      if (fileTagInfo) {
+        const dummyContent = `Dummy content for ${fileTagInfo.extension}`;
+        const mockFile = new Blob([dummyContent], { type: fileTagInfo.mimeType });
+        const fileName = `test-document.${fileTagInfo.extension}`;
+        formData.append(fieldName, mockFile, fileName);
+        return;
+      }
 
-    // 4. التعامل مع المصفوفات (الـ Arrays) - الجزء الأهم للإصلاح
-    if (Array.isArray(value)) {
-      value.forEach((item, index) => {
-        if (item === null || item === undefined) return;
+      // Handle arrays - use indexed keys for ASP.NET Core compatibility
+      if (Array.isArray(value)) {
+        value.forEach((item, index) => {
+          if (item === null || item === undefined) return;
 
-        // بناء اسم الحقل للمصفوفة بالشكل الذي يفهمه ASP.NET Core: Key[0]
-        const arrayFieldName = `${fieldName}[${index}]`;
+          // ASP.NET Core expects: FieldName[index] for array items
+          const arrayFieldName = `${fieldName}[${index}]`;
 
-        // إذا كان العنصر داخل المصفوفة عبارة عن "تاجات ملفات"
-        const itemFileTagInfo = this.FILE_TAG_MAP[String(item)];
-        if (itemFileTagInfo) {
-          const dummyContent = `Dummy content for ${itemFileTagInfo.extension}`;
-          const mockFile = new Blob([dummyContent], { type: itemFileTagInfo.mimeType });
-          const fileName = `test-document.${itemFileTagInfo.extension}`;
-          formData.append(arrayFieldName, mockFile, fileName);
-        }
-        // إذا كان العنصر داخل المصفوفة عبارة عن Object (زي InvoiceModels)
-        else if (typeof item === 'object' && item !== null) {
-          this.appendFormDataRecursive(item, formData, arrayFieldName);
-        }
-        // إذا كان عنصراً بسيطاً (String, Number)
-        else {
-          formData.append(arrayFieldName, item.toString());
-        }
-      });
-      return;
-    }
+          // Check if array item is a file tag
+          const itemFileTagInfo = this.FILE_TAG_MAP[String(item)];
+          if (itemFileTagInfo) {
+            const dummyContent = `Dummy content for ${itemFileTagInfo.extension}`;
+            const mockFile = new Blob([dummyContent], { type: itemFileTagInfo.mimeType });
+            const fileName = `test-document.${itemFileTagInfo.extension}`;
+            formData.append(arrayFieldName, mockFile, fileName);
+          }
+          // If array item is an object (nested), recursively process it
+          else if (typeof item === 'object' && item !== null && item.constructor === Object) {
+            this.appendFormDataRecursive(item, formData, arrayFieldName);
+          }
+          // If array item is a primitive (string, number, boolean), append it
+          else {
+            formData.append(arrayFieldName, String(item));
+          }
+        });
+        return;
+      }
 
-    // 5. التعامل مع الكائنات المتداخلة (Nested Objects)
-    if (typeof value === 'object' && value.constructor === Object) {
-      this.appendFormDataRecursive(value, formData, fieldName);
-      return;
-    }
+      // Handle nested objects
+      if (typeof value === 'object' && value.constructor === Object) {
+        this.appendFormDataRecursive(value, formData, fieldName);
+        return;
+      }
 
-    // 6. التعامل مع القيم البسيطة (الـ Primitive)
-    // تأكد من إرسالها كـ string أو Blob مباشرة
-    formData.append(fieldName, value.toString());
-  });
-}
+      // Handle primitive values
+      formData.append(fieldName, String(value));
+    });
+  }
 
   /**
    * Recursively flatten nested objects and arrays into URLSearchParams

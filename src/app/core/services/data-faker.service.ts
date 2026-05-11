@@ -97,6 +97,11 @@ export class DataFakerService {
     '@word': () => faker.lorem.word(),
     '@title': () => faker.lorem.sentence(3),
     '@description': () => faker.lorem.paragraph(),
+
+    // Enum Tags (Backend-specific)
+    '@invoice_status': () => faker.number.int({ min: 1, max: 4 }),
+    '@gender': () => faker.number.int({ min: 1, max: 3 }),
+    '@general_size': () => faker.number.int({ min: 1, max: 5 }),
   };
   /**
    * Generates random data based on sample object structure.
@@ -160,40 +165,67 @@ export class DataFakerService {
    *
    * @description
    * Priority order:
-   * 1. Explicit @ tag detection (e.g., "@email", "@fullName") - highest priority, overrides all
+   * 1. Explicit @ tag detection - supports both single tags (e.g., "@email") and template strings (e.g., "Invoice @uuid")
    * 2. Smart key-based detection (checks key name against known patterns)
    * 3. Type-based fallback (uses typeof to determine generation method)
    * 4. Default alphanumeric string for unknown cases
    *
    * @example
    * generateFakeValue('anything', '@email') -> 'john@example.com'
+   * generateFakeValue('anything', 'Invoice @uuid') -> 'Invoice 550e8400-e29b-41d4-a716-446655440000'
    * generateFakeValue('email', 'user@example.com') -> 'jane@test.com' (key-based, no @ tag)
    */
   private generateFakeValue(key: string, value: any): any {
-    // PRIORITY 1: Check for explicit @ tag override
-    if (typeof value === 'string' && value.startsWith('@')) {
-      const fakeValueGenerator = this.EXPLICIT_TAG_MAP[value];
-      if (fakeValueGenerator) {
-        console.log(`[DataFaker] Using explicit tag: ${value}`);
-        return fakeValueGenerator();
-      } else {
-        // Unrecognized tag - fall back to key-based or type-based detection
-        console.warn(
-          `[DataFaker] Unrecognized tag "${value}". Falling back to key-based detection.`,
-        );
-        // Continue to PRIORITY 2 below
-      }
-    }
+    // PRIORITY 1: Check for explicit @ tag override (with template system support)
+    if (typeof value === 'string') {
+      // Check if string contains @ tags (either single tag or template)
+      if (value.includes('@')) {
+        const isJustSingleTag = /^@\w+$/.test(value); // Check if entire value is a single tag like "@invoice_status"
+        
+        // Use regex to find and replace all @tagName patterns
+        const replacedValue = value.replace(/@(\w+)/g, (match, tagName) => {
+          const fullTag = `@${tagName}`;
+          const fakeValueGenerator = this.EXPLICIT_TAG_MAP[fullTag];
+          if (fakeValueGenerator) {
+            const generatedValue = fakeValueGenerator();
+            console.log(`[DataFaker] Replacing ${fullTag} -> ${generatedValue}`);
+            return String(generatedValue);
+          } else {
+            console.warn(`[DataFaker] Unrecognized tag "${fullTag}". Keeping original.`);
+            return match;
+          }
+        });
 
-    // PRIORITY 2: Check for file upload tags (special case, not @ prefixed)
-    if (
-      value === '[FILE_UPLOAD]' ||
-      value === '[FILE_PDF]' ||
-      value === '[FILE_ZIP]' ||
-      value === '[FILE_DOCX]' ||
-      value === '[FILE_TXT]'
-    ) {
-      return value;
+        // If the original template was just a single tag, ensure we return the correct type
+        if (isJustSingleTag) {
+          const tagName = value.slice(1); // Remove @ prefix
+          const fakeValueGenerator = this.EXPLICIT_TAG_MAP[value];
+          if (fakeValueGenerator) {
+            const result = fakeValueGenerator();
+            // If the tag is one of the enum tags, ensure it's returned as a number
+            if (['@invoice_status', '@gender', '@general_size'].includes(value)) {
+              return typeof result === 'number' ? result : Number(result);
+            }
+            return result;
+          }
+        }
+
+        // If the result is different from the original, it means we did replacements
+        if (replacedValue !== value) {
+          return replacedValue;
+        }
+      }
+
+      // Check for file upload tags (special case, not @ prefixed)
+      if (
+        value === '[FILE_UPLOAD]' ||
+        value === '[FILE_PDF]' ||
+        value === '[FILE_ZIP]' ||
+        value === '[FILE_DOCX]' ||
+        value === '[FILE_TXT]'
+      ) {
+        return value;
+      }
     }
 
     // PRIORITY 3: Smart key-based detection
