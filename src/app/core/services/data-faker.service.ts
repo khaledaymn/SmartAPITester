@@ -45,6 +45,7 @@ export class DataFakerService {
     '@job': () => faker.person.jobTitle(),
     '@jobTitle': () => faker.person.jobTitle(),
     '@jobDescriptor': () => faker.person.jobDescriptor(),
+    '@expense_category': () => faker.number.int({ min: 0, max: 3 }),
 
     // Contact Tags
     '@email': () => faker.internet.email(),
@@ -181,7 +182,7 @@ export class DataFakerService {
       // Check if string contains @ tags (either single tag or template)
       if (value.includes('@')) {
         const isJustSingleTag = /^@\w+$/.test(value); // Check if entire value is a single tag like "@invoice_status"
-        
+
         // Use regex to find and replace all @tagName patterns
         const replacedValue = value.replace(/@(\w+)/g, (match, tagName) => {
           const fullTag = `@${tagName}`;
