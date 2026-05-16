@@ -177,191 +177,60 @@ export class DataFakerService {
    * generateFakeValue('email', 'user@example.com') -> 'jane@test.com' (key-based, no @ tag)
    */
   private generateFakeValue(key: string, value: any): any {
-    // PRIORITY 1: Check for explicit @ tag override (with template system support)
-    if (typeof value === 'string' && !value.includes('@') && !value.startsWith('[FILE_')) {
-      return value;
-    }
-    if (typeof value === 'string') {
-      // Check if string contains @ tags (either single tag or template)
-      if (value.includes('@')) {
-        const isJustSingleTag = /^@\w+$/.test(value); // Check if entire value is a single tag like "@invoice_status"
 
-        // Use regex to find and replace all @tagName patterns
-        const replacedValue = value.replace(/@(\w+)/g, (match, tagName) => {
-          const fullTag = `@${tagName}`;
-          const fakeValueGenerator = this.EXPLICIT_TAG_MAP[fullTag];
-          if (fakeValueGenerator) {
-            const generatedValue = fakeValueGenerator();
-            console.log(`[DataFaker] Replacing ${fullTag} -> ${generatedValue}`);
-            return String(generatedValue);
-          } else {
-            console.warn(`[DataFaker] Unrecognized tag "${fullTag}". Keeping original.`);
-            return match;
-          }
-        });
-
-        // If the original template was just a single tag, ensure we return the correct type
-        if (isJustSingleTag) {
-          const tagName = value.slice(1); // Remove @ prefix
-          const fakeValueGenerator = this.EXPLICIT_TAG_MAP[value];
-          if (fakeValueGenerator) {
-            const result = fakeValueGenerator();
-            // If the tag is one of the enum tags, ensure it's returned as a number
-            if (['@invoice_status', '@gender', '@general_size'].includes(value)) {
-              return typeof result === 'number' ? result : Number(result);
-            }
-            return result;
-          }
-        }
-
-        // If the result is different from the original, it means we did replacements
-        if (replacedValue !== value) {
-          return replacedValue;
-        }
-      }
-
-      // Check for file upload tags (special case, not @ prefixed)
-      if (
-        value === '[FILE_UPLOAD]' ||
-        value === '[FILE_PDF]' ||
-        value === '[FILE_ZIP]' ||
-        value === '[FILE_DOCX]' ||
-        value === '[FILE_TXT]'
-      ) {
-        return value;
-      }
-    }
-
-    // PRIORITY 3: Smart key-based detection
-    const keyLower = key.toLowerCase();
-
-    // Preserve time-like values as-is
-    if (
-      keyLower.includes('time') ||
-      (typeof value === 'string' && /^\d{2}:\d{2}:\d{2}$/.test(value))
-    ) {
+    if (typeof value !== 'string') {
       return value;
     }
 
-    if (this.matchesPattern(keyLower, ['email', 'mail', 'emailaddress'])) {
-      return faker.internet.email();
+    if (!value.includes('@') && !value.startsWith('[FILE_')) {
+      return value;
     }
 
-    if (this.matchesPattern(keyLower, ['name', 'fullname', 'username'])) {
-      return faker.person.fullName();
+    const fileTags = ['[FILE_UPLOAD]', '[FILE_PDF]', '[FILE_ZIP]', '[FILE_DOCX]', '[FILE_TXT]'];
+    if (fileTags.includes(value)) {
+      return value;
     }
 
-    if (this.matchesPattern(keyLower, ['phone', 'phonenumber', 'telephone', 'mobile'])) {
-      const prefixes = ['010', '011', '012', '015'];
-      const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    if (value.includes('@')) {
+      const isJustSingleTag = /^@\w+$/.test(value);
 
-      return randomPrefix + faker.string.numeric(8);
-    }
+      const replacedValue = value.replace(/@(\w+)/g, (match, tagName) => {
+        const fullTag = `@${tagName}`;
+        const fakeValueGenerator = this.EXPLICIT_TAG_MAP[fullTag];
+        if (fakeValueGenerator) {
+          const generatedValue = fakeValueGenerator();
+          console.log(`[DataFaker] Replacing ${fullTag} -> ${generatedValue}`);
+          return String(generatedValue);
+        } else {
+          console.warn(`[DataFaker] Unrecognized tag "${fullTag}". Keeping original.`);
+          return match;
+        }
+      });
 
-    if (this.matchesPattern(keyLower, ['firstname', 'first_name'])) {
-      return faker.person.firstName();
-    }
+      if (isJustSingleTag) {
+        const fakeValueGenerator = this.EXPLICIT_TAG_MAP[value];
+        if (fakeValueGenerator) {
+          const result = fakeValueGenerator();
+          const numericTags = [
+            '@invoice_status',
+            '@gender',
+            '@general_size',
+            '@expense_category',
+            '@discount_percentage',
+            '@discount_amount'
+          ];
 
-    if (this.matchesPattern(keyLower, ['lastname', 'last_name', 'surname'])) {
-      return faker.person.lastName();
-    }
-
-    // if (this.matchesPattern(keyLower, ['phone', 'phonenumber', 'telephone', 'mobile'])) {
-    //   return faker.phone.number();
-    // }
-
-    if (this.matchesPattern(keyLower, ['id', 'uuid', 'uniqueid', 'identifier'])) {
-      if (!value.includes('@')) {
-        return value;
+          if (numericTags.includes(value)) {
+            return typeof result === 'number' ? result : Number(result);
+          }
+          return result;
+        }
       }
-      return faker.string.uuid();
+
+      return replacedValue;
     }
 
-    if (this.matchesPattern(keyLower, ['address', 'streetaddress', 'street'])) {
-      return faker.location.streetAddress();
-    }
-
-    if (this.matchesPattern(keyLower, ['price', 'amount', 'balance', 'cost', 'salary', 'wage'])) {
-      return faker.number.int({ min: 4000, max: 15000 });
-    }
-
-    if (this.matchesPattern(keyLower, ['city', 'municipality'])) {
-      return faker.location.city();
-    }
-
-    if (this.matchesPattern(keyLower, ['country', 'nation'])) {
-      return faker.location.country();
-    }
-
-    if (this.matchesPattern(keyLower, ['zip', 'zipcode', 'postal', 'postalcode'])) {
-      return faker.location.zipCode();
-    }
-
-    if (
-      this.matchesPattern(keyLower, ['description', 'bio', 'text', 'content', 'comment', 'message'])
-    ) {
-      return faker.lorem.sentence();
-    }
-
-    if (this.matchesPattern(keyLower, ['title', 'subject', 'headline'])) {
-      return faker.lorem.sentence(3);
-    }
-
-    if (this.matchesPattern(keyLower, ['price', 'amount', 'balance', 'cost', 'salary', 'wage'])) {
-      return faker.number.float({ min: 10, max: 1000, fractionDigits: 2 });
-    }
-
-    if (this.matchesPattern(keyLower, ['url', 'website', 'link', 'uri'])) {
-      return faker.internet.url();
-    }
-
-    if (
-      this.matchesPattern(keyLower, [
-        'date',
-        'timestamp',
-        'createdat',
-        'updatedat',
-        'createdon',
-        'updatedon',
-      ])
-    ) {
-      return faker.date.recent().toISOString();
-    }
-
-    if (this.matchesPattern(keyLower, ['company', 'organization', 'business'])) {
-      return faker.company.name();
-    }
-
-    if (this.matchesPattern(keyLower, ['ipaddress', 'ip', 'ipv4', 'ipv6'])) {
-      return faker.internet.ipv4();
-    }
-
-    if (this.matchesPattern(keyLower, ['color', 'hex'])) {
-      return faker.color.rgb();
-    }
-
-    // Type-Based Fallback Detection
-    const valueType = typeof value;
-
-    if (valueType === 'string') {
-      return faker.string.alphanumeric(8);
-    }
-
-    if (valueType === 'number') {
-      // Check if original value was float-like
-      if (Number.isInteger(value)) {
-        return faker.number.int({ min: 1, max: 100 });
-      } else {
-        return faker.number.float({ min: 1, max: 100, fractionDigits: 2 });
-      }
-    }
-
-    if (valueType === 'boolean') {
-      return faker.datatype.boolean();
-    }
-
-    // Default fallback
-    return faker.string.alphanumeric(8);
+    return value;
   }
 
   /**
