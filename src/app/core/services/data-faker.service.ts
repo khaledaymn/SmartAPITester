@@ -271,6 +271,9 @@ export class DataFakerService {
     // }
 
     if (this.matchesPattern(keyLower, ['id', 'uuid', 'uniqueid', 'identifier'])) {
+      if (!value.includes('@')) {
+        return value;
+      }
       return faker.string.uuid();
     }
 
